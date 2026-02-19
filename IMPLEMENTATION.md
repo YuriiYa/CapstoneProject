@@ -59,7 +59,7 @@ This implementation uses a fully containerized architecture with the following b
    - Generates query embedding (Ollama)
    - Retrieves relevant context (ChromaDB)
    - Reasons about the query
-   - Generates answer (Ollama + Gemma 2)
+   - Generates answer (Ollama + Gemma 3)
    - Reflects on answer quality
 4. Response sent back to user with answer, confidence, and sources
 
@@ -138,14 +138,7 @@ services:
       - ollama_data:/root/.ollama
     environment:
       - OLLAMA_HOST=0.0.0.0
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    # For CPU-only deployment, remove the deploy section
+    # CPU-only deployment (no GPU required)
     restart: unless-stopped
 
   # Whisper for audio transcription
@@ -157,13 +150,7 @@ services:
     environment:
       - ASR_MODEL=base  # Options: tiny, base, small, medium, large
       - ASR_ENGINE=openai_whisper
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    # CPU-only deployment (no GPU required)
     restart: unless-stopped
 
   # ChromaDB for vector storage
@@ -258,7 +245,7 @@ Create `.env`:
 ```bash
 # Ollama Configuration
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma2:12b-instruct-q4_K_M
+OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 
 # Whisper Configuration
@@ -346,8 +333,8 @@ podman-compose ps
 
 **Step 2: Pull Models into Ollama**
 ```bash
-# Pull Gemma 2 12B Instruct (quantized for efficiency)
-podman exec -it ollama ollama pull gemma2:12b-instruct-q4_K_M
+# Pull Gemma 3 12B Instruct (quantized for efficiency)
+podman exec -it ollama ollama pull gemma3:12b-instruct-q4_K_M
 
 # Pull embedding model (nomic-embed-text is excellent for RAG)
 podman exec -it ollama ollama pull nomic-embed-text
@@ -382,19 +369,26 @@ curl http://localhost:3000
 5. Select Gemma 2 12B model from dropdown
 
 **Step 5: Process Data and Build Knowledge Base**
+
+The RAG system will index all materials from the `./resources` folder:
+- **PDF Files**: RAG Intro.pdf, Databases for GenAI.pdf, Productized & Enterprise RAG.pdf, Architecture & Design Patterns.pdf
+- **Audio/Video Files**: MP4 lecture recordings that will be transcribed
+
 ```bash
-# Process PDFs
-python src/data_processing/pdf_loader.py
+# Process PDFs from ./resources folder
+python src/data_processing/pdf_loader.py --input ./resources --output ./data/processed/pdf_text
 
-# Transcribe audio files
-python src/data_processing/audio_transcriber.py
+# Transcribe audio/video files from ./resources folder
+python src/data_processing/audio_transcriber.py --input ./resources --output ./data/processed/audio_transcripts
 
-# Chunk text
-python src/data_processing/text_chunker.py
+# Chunk all processed text
+python src/data_processing/text_chunker.py --input ./data/processed --output ./data/processed/chunks
 
 # Generate embeddings and populate vector store
-python src/embeddings/embedding_generator.py
+python src/embeddings/embedding_generator.py --input ./data/processed/chunks
 ```
+
+**Note**: This data preparation step should be completed during application setup before the RAG system can answer questions.
 
 **Step 6: Start Flask API (if not using container)**
 ```bash
@@ -426,16 +420,26 @@ curl -X POST http://localhost:5000/api/chat \
 
 ### 1.5 Resource Requirements
 
-**Minimum Configuration:**
-- RAM: 14GB (8GB Gemma 2 12B Q4, 2GB Whisper, 2GB ChromaDB, 2GB Open WebUI + Flask)
+**Minimum Configuration (Laptop/Desktop):**
+- RAM: 14GB (8GB Gemma 3 12B Q4, 2GB Whisper, 2GB ChromaDB, 2GB Open WebUI + Flask)
 - Storage: 20GB (models + data + containers)
-- CPU: 4+ cores (for CPU-only deployment)
+- CPU: 4+ cores (CPU-only deployment)
+- OS: Windows, Linux, or macOS
 
-**Recommended Configuration:**
+**Recommended Configuration (Laptop/Desktop):**
 - RAM: 20GB+
-- GPU: NVIDIA GPU with 8GB+ VRAM (for faster inference)
 - Storage: 30GB+
 - CPU: 8+ cores
+- OS: Windows, Linux, or macOS
+
+**Raspberry Pi 5 Configuration:**
+- Model: Raspberry Pi 5 (8GB RAM)
+- AI HAT+: Hailo-8L (26 TOPS NPU)
+- Storage: 64GB+ microSD or NVMe SSD (recommended)
+- Power: 27W USB-C PD supply or 52Pi PD Power HAT
+- Cooling: Active cooling (fan) required
+- Model: Gemma 3 2B quantized (instead of 12B)
+- See `./PI5AI.md` for detailed Raspberry Pi 5 requirements
 
 **Port Allocation:**
 - 3000: Open WebUI (Web Interface)
@@ -444,15 +448,17 @@ curl -X POST http://localhost:5000/api/chat \
 - 9000: Whisper (Audio transcription)
 - 11434: Ollama (LLM and embeddings)
 
-**Lighter Alternative (if resources are limited):**
+**Lighter Alternative (for limited resources or Raspberry Pi 5):**
 ```bash
 # Use smaller models
-podman exec -it ollama ollama pull gemma2:2b-instruct-q4_K_M  # Only 1.6GB
+podman exec -it ollama ollama pull gemma3:2b-instruct-q4_K_M  # Only 1.6GB
 podman exec -it ollama ollama pull nomic-embed-text            # 274MB
 
 # Update .env
-OLLAMA_MODEL=gemma2:2b-instruct-q4_K_M
+OLLAMA_MODEL=gemma3:2b-instruct-q4_K_M
 ```
+
+**Note**: Gemma 3 2B is recommended for Raspberry Pi 5 deployment due to memory constraints.
 
 **Network Configuration:**
 All services communicate via Docker/Podman internal network. External access:
@@ -826,7 +832,7 @@ class OllamaClient:
     def __init__(
         self,
         base_url: str = "http://localhost:11434",
-        model: str = "gemma2:12b-instruct-q4_K_M"
+        model: str = "gemma3:12b-instruct-q4_K_M"
     ):
         self.base_url = base_url
         self.model = model
@@ -905,7 +911,7 @@ class OllamaClient:
 # Usage
 llm_client = OllamaClient(
     base_url="http://localhost:11434",
-    model="gemma2:12b-instruct-q4_K_M"
+    model="gemma3:12b-instruct-q4_K_M"
 )
 
 # Test connection
@@ -914,6 +920,13 @@ if llm_client.test_connection():
 else:
     print("✗ Cannot connect to Ollama")
 ```
+
+**Why Gemma 3 over Gemma 2:**
+- **Multimodal**: Processes both text and images (future-proof for document analysis)
+- **Extended Context**: 128K tokens vs 8K (better for long documents)
+- **Better Reasoning**: Improved performance on complex queries
+- **Multilingual**: Support for 140+ languages
+- **Same Resource Requirements**: Similar memory footprint with quantization
 
 Benefits of Ollama over LM Studio:
 - Container-friendly (no GUI)
@@ -1143,7 +1156,7 @@ class RAGAgent:
         self.retriever = Retriever(self.vector_store, self.embeddings)
         self.llm_client = OllamaClient(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            model="gemma2:12b-instruct-q4_K_M"
+            model="gemma3:12b-instruct-q4_K_M"
         )
         self.reasoning_engine = ReasoningEngine(self.llm_client)
         self.tool_manager = ToolManager()
@@ -1806,7 +1819,7 @@ Document:
 
 8. **Out of memory errors**:
    - Use quantized models (Q4_K_M instead of full precision)
-   - Switch to smaller model (gemma2:2b instead of 12b)
+   - Switch to smaller model (gemma3:2b instead of 12b)
    - Reduce batch sizes
    - Increase container memory limits in docker-compose.yml
 
@@ -1843,7 +1856,7 @@ After completing the implementation:
 - Podman Compose: https://github.com/containers/podman-compose
 
 ### Model Information
-- Gemma 2 Models: https://ollama.ai/library/gemma2
+- Gemma 3 Models: https://ollama.ai/library/gemma3
 - Nomic Embed Text: https://ollama.ai/library/nomic-embed-text
 - Ollama Model Library: https://ollama.ai/library
 
@@ -1881,16 +1894,16 @@ podman-compose down -v  # Remove volumes too
 podman exec -it ollama ollama list
 
 # Pull a model
-podman exec -it ollama ollama pull gemma2:12b-instruct-q4_K_M
+podman exec -it ollama ollama pull gemma3:12b-instruct-q4_K_M
 
 # Remove a model
 podman exec -it ollama ollama rm [model_name]
 
 # Show model info
-podman exec -it ollama ollama show gemma2:12b-instruct-q4_K_M
+podman exec -it ollama ollama show gemma3:12b-instruct-q4_K_M
 
 # Test generation
-podman exec -it ollama ollama run gemma2:12b-instruct-q4_K_M "Hello!"
+podman exec -it ollama ollama run gemma3:12b-instruct-q4_K_M "Hello!"
 ```
 
 **Debugging:**
@@ -1908,7 +1921,7 @@ podman inspect [container_name] | grep -A 20 Resources
 
 ## Deployment Options
 
-### Option 1: Full Stack (Recommended)
+### Option 1: Full Stack on Laptop/Desktop (Recommended for Development)
 All services containerized including the RAG application:
 ```bash
 podman-compose up -d
@@ -1924,7 +1937,177 @@ podman-compose up -d ollama whisper chromadb
 python main.py
 ```
 
-### Option 3: Cloud Deployment
+### Option 3: Raspberry Pi 5 Deployment
+
+**Hardware Requirements:**
+- Raspberry Pi 5 (8GB RAM)
+- AI HAT+ with Hailo-8L NPU (26 TOPS)
+- 64GB+ microSD or NVMe SSD (recommended)
+- 27W USB-C PD power supply or 52Pi PD Power HAT
+- Active cooling (fan)
+
+**Software Setup:**
+
+1. **Install Raspberry Pi OS (64-bit)**
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Podman (Docker alternative for ARM)
+sudo apt install -y podman podman-compose
+```
+
+2. **Install Hailo Software Stack**
+```bash
+# Install Hailo drivers and runtime
+# Follow official Hailo installation guide for Raspberry Pi 5
+# https://github.com/hailo-ai/hailort
+
+# Verify Hailo device
+ls /dev/hailo*  # Should show /dev/hailo0
+```
+
+3. **Clone Repository and Configure**
+```bash
+git clone <your-repo>
+cd capstone-project
+
+# Create .env for Raspberry Pi 5
+cat > .env << EOF
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_MODEL=gemma3:2b-instruct-q4_K_M
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+WHISPER_BASE_URL=http://whisper:9000
+WHISPER_MODEL=tiny
+CHROMA_HOST=chromadb
+CHROMA_PORT=8000
+FLASK_ENV=production
+WEBUI_SECRET_KEY=$(openssl rand -hex 32)
+EOF
+```
+
+4. **Modify docker-compose.yml for ARM Architecture**
+```yaml
+# Use ARM-compatible images
+services:
+  ollama:
+    image: ollama/ollama:latest  # Supports ARM64
+    # ... rest of config
+
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest-arm64
+    environment:
+      - ASR_MODEL=tiny  # Use tiny model for Pi 5
+    # ... rest of config
+```
+
+5. **Start Services**
+```bash
+# Pull ARM-compatible images
+podman-compose pull
+
+# Start all services
+podman-compose up -d
+
+# Monitor startup
+podman-compose logs -f
+```
+
+6. **Pull Optimized Models for Raspberry Pi 5**
+```bash
+# Pull Gemma 3 2B (optimized for edge devices)
+podman exec -it ollama ollama pull gemma3:2b-instruct-q4_K_M
+
+# Pull embedding model
+podman exec -it ollama ollama pull nomic-embed-text
+
+# Verify models
+podman exec -it ollama ollama list
+```
+
+7. **Process Data and Build Knowledge Base**
+```bash
+# Process resources folder
+python src/data_processing/pdf_loader.py --input ./resources
+python src/data_processing/audio_transcriber.py --input ./resources
+python src/data_processing/text_chunker.py
+python src/embeddings/embedding_generator.py
+```
+
+8. **Access the System**
+- Open WebUI: http://raspberrypi.local:3000 (or http://<pi-ip>:3000)
+- Flask API: http://raspberrypi.local:5000
+- API Docs: http://raspberrypi.local:5000/apidocs
+
+**Raspberry Pi 5 Performance Expectations:**
+- **Gemma 3 2B Inference**: 5-15 tokens/second (CPU + NPU acceleration)
+- **Whisper Tiny**: Real-time transcription for short audio clips
+- **Memory Usage**: ~6GB under load (leaves 2GB for OS)
+- **Storage**: 15GB for models + data
+- **Power Consumption**: 8-12W under load
+
+**Optimization Tips for Raspberry Pi 5:**
+
+1. **Use NVMe SSD instead of microSD**
+   - 5-10x faster I/O
+   - Better for database operations
+   - Longer lifespan
+
+2. **Enable Hailo NPU Acceleration**
+   - Convert models to Hailo HEF format for maximum performance
+   - See `./PI5AI.md` for detailed instructions
+
+3. **Reduce Context Window**
+   - Use smaller chunk sizes (500 tokens instead of 1000)
+   - Retrieve fewer chunks (top_k=3 instead of 5)
+
+4. **Optimize Whisper**
+   - Use `tiny` model for real-time performance
+   - Process audio in smaller segments
+
+5. **Monitor Thermals**
+```bash
+# Check CPU temperature
+vcgencmd measure_temp
+
+# Monitor system resources
+htop
+```
+
+6. **Persistent Storage Configuration**
+```bash
+# Mount NVMe SSD (if using)
+sudo mkdir -p /mnt/nvme
+sudo mount /dev/nvme0n1p1 /mnt/nvme
+
+# Move data directory to NVMe
+sudo mv ./data /mnt/nvme/
+ln -s /mnt/nvme/data ./data
+```
+
+**Raspberry Pi 5 Limitations:**
+- Slower inference than desktop (5-15 tok/s vs 30-50 tok/s)
+- Limited to smaller models (2B-7B range)
+- Cannot run multiple large models simultaneously
+- Requires active cooling for sustained workloads
+
+**When to Use Raspberry Pi 5:**
+- Edge deployment scenarios
+- Portable AI assistant
+- Low-power always-on system
+- Learning edge AI deployment
+- Cost-effective production prototype
+
+**When to Use Laptop/Desktop:**
+- Development and testing
+- Larger models (12B+)
+- Faster iteration cycles
+- Multiple concurrent users
+- Higher throughput requirements
+
+For complete Raspberry Pi 5 hardware specifications and setup details, see `./PI5AI.md`.
+
+### Option 4: Cloud Deployment
 Deploy to cloud platforms:
 - **AWS**: ECS/Fargate with ECR
 - **Azure**: Container Instances
@@ -1933,38 +2116,39 @@ Deploy to cloud platforms:
 
 ## Performance Optimization
 
-### GPU Acceleration
-If you have NVIDIA GPU:
-```yaml
-# In docker-compose.yml, keep the deploy section:
-deploy:
-  resources:
-    reservations:
-      devices:
-        - driver: nvidia
-          count: all
-          capabilities: [gpu]
-```
-
-### CPU-Only Optimization
-For CPU-only deployment:
-1. Remove GPU sections from docker-compose.yml
-2. Use quantized models (Q4_K_M)
-3. Reduce batch sizes
+### CPU Optimization
+For CPU-only deployment (laptop, desktop, or Raspberry Pi 5):
+1. Use quantized models (Q4_K_M or Q4_0)
+2. Reduce batch sizes
+3. Optimize chunk sizes for faster retrieval
 4. Consider smaller models for faster inference
+5. Enable multi-threading where possible
+
+**Model Selection by Platform:**
+- **Laptop/Desktop (16GB+ RAM)**: gemma3:12b-instruct-q4_K_M
+- **Laptop/Desktop (8-16GB RAM)**: gemma3:4b-instruct-q4_K_M
+- **Raspberry Pi 5 (8GB RAM)**: gemma3:2b-instruct-q4_K_M
 
 ### Memory Management
-Adjust container memory limits:
+Adjust container memory limits based on your hardware:
 ```yaml
 services:
   ollama:
     deploy:
       resources:
         limits:
-          memory: 10G
+          memory: 10G  # Laptop/Desktop
+          # memory: 4G  # Raspberry Pi 5
         reservations:
-          memory: 8G
+          memory: 8G   # Laptop/Desktop
+          # memory: 3G  # Raspberry Pi 5
 ```
+
+### Storage Optimization
+- **Laptop/Desktop**: SSD recommended
+- **Raspberry Pi 5**: NVMe SSD strongly recommended over microSD
+- Use volume mounts for persistent data
+- Regular cleanup of unused models
 
 ## Production Considerations
 
@@ -1997,8 +2181,8 @@ services:
 ## Cost Optimization
 
 ### Model Selection
-- **Development**: gemma2:2b-instruct-q4_K_M (1.6GB)
-- **Production**: gemma2:12b-instruct-q4_K_M (7GB)
+- **Development**: gemma3:2b-instruct-q4_K_M (1.6GB)
+- **Production**: gemma3:12b-instruct-q4_K_M (7GB)
 
 ### Resource Allocation
 - Start with minimal resources
@@ -2012,9 +2196,8 @@ services:
 - Podman or Docker installed
 - 14GB+ RAM available
 - 25GB+ disk space
-- (Optional) NVIDIA GPU with drivers
 
-### 5-Minute Setup
+### 5-Minute Setup (Laptop/Desktop)
 ```bash
 # 1. Clone repository
 git clone <your-repo>
@@ -2023,7 +2206,7 @@ cd capstone-project
 # 2. Create .env file
 cat > .env << EOF
 OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=gemma2:12b-instruct-q4_K_M
+OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
 WHISPER_BASE_URL=http://whisper:9000
 CHROMA_HOST=chromadb
 CHROMA_PORT=8000
@@ -2038,12 +2221,12 @@ podman-compose up -d
 podman-compose logs -f
 
 # 5. Pull models
-podman exec -it ollama ollama pull gemma2:12b-instruct-q4_K_M
+podman exec -it ollama ollama pull gemma3:12b-instruct-q4_K_M
 podman exec -it ollama ollama pull nomic-embed-text
 
-# 6. Process data
-python src/data_processing/pdf_loader.py
-python src/data_processing/audio_transcriber.py
+# 6. Process data from ./resources folder
+python src/data_processing/pdf_loader.py --input ./resources
+python src/data_processing/audio_transcriber.py --input ./resources
 python src/data_processing/text_chunker.py
 
 # 7. Generate embeddings and populate vector store
@@ -2053,6 +2236,44 @@ python src/embeddings/embedding_generator.py
 # Open WebUI: http://localhost:3000
 # Flask API: http://localhost:5000
 # API Docs: http://localhost:5000/apidocs
+```
+
+### Quick Setup for Raspberry Pi 5
+```bash
+# 1. Clone repository
+git clone <your-repo>
+cd capstone-project
+
+# 2. Create .env file (optimized for Pi 5)
+cat > .env << EOF
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_MODEL=gemma3:2b-instruct-q4_K_M
+WHISPER_BASE_URL=http://whisper:9000
+WHISPER_MODEL=tiny
+CHROMA_HOST=chromadb
+CHROMA_PORT=8000
+FLASK_ENV=production
+WEBUI_SECRET_KEY=$(openssl rand -hex 32)
+EOF
+
+# 3. Start all services
+podman-compose up -d
+
+# 4. Pull optimized models
+podman exec -it ollama ollama pull gemma3:2b-instruct-q4_K_M
+podman exec -it ollama ollama pull nomic-embed-text
+
+# 5. Process data from ./resources folder
+python src/data_processing/pdf_loader.py --input ./resources
+python src/data_processing/audio_transcriber.py --input ./resources
+python src/data_processing/text_chunker.py
+
+# 6. Generate embeddings and populate vector store
+python src/embeddings/embedding_generator.py
+
+# 7. Access the system
+# Open WebUI: http://raspberrypi.local:3000
+# Flask API: http://raspberrypi.local:5000
 ```
 
 ### Verification
@@ -2100,7 +2321,7 @@ curl -X POST http://localhost:5000/api/chat \
    - Click "Verify Connection"
 
 3. **Start Chatting:**
-   - Select "gemma2:12b-instruct-q4_K_M" from model dropdown
+   - Select "gemma3:12b-instruct-q4_K_M" from model dropdown
    - Type your question in the chat box
    - The system will use RAG to answer based on your knowledge base
 
@@ -2182,3 +2403,68 @@ base_url = "http://localhost:1234/v1"
 # Ollama
 base_url = "http://localhost:11434"
 ```
+
+## Platform Comparison
+
+### Laptop/Desktop vs Raspberry Pi 5
+
+| Feature | Laptop/Desktop | Raspberry Pi 5 |
+|---------|---------------|----------------|
+| **Model Size** | Up to 12B+ | 2B-7B (2B recommended) |
+| **Inference Speed** | 30-50 tok/s | 5-15 tok/s |
+| **Memory** | 16GB+ | 8GB |
+| **Storage** | SSD | NVMe SSD (recommended) |
+| **Power** | 50-150W | 8-12W |
+| **Cost** | $800-2000+ | $150-200 |
+| **Portability** | Moderate | High |
+| **Use Case** | Development, Production | Edge, Portable, Learning |
+| **Cooling** | Usually adequate | Active cooling required |
+
+### Switching Between Platforms
+
+The containerized architecture makes it easy to switch between laptop and Raspberry Pi 5:
+
+1. **Same codebase**: No code changes needed
+2. **Different .env**: Just update model names and resource limits
+3. **Same docker-compose.yml**: Works on both x86_64 and ARM64
+4. **Portable data**: Copy `./data` and `./resources` folders
+
+**Quick Switch:**
+```bash
+# On Laptop
+OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
+
+# On Raspberry Pi 5
+OLLAMA_MODEL=gemma3:2b-instruct-q4_K_M
+```
+
+## Data Sources
+
+All RAG knowledge base materials are located in `./resources/`:
+
+**PDF Documents:**
+- `RAG Intro.pdf` - Introduction to RAG concepts
+- `Databases for GenAI.pdf` - Database considerations for GenAI
+- `Productized & Enterprise RAG.pdf` - Production RAG systems
+- `Architecture & Design Patterns.pdf` - RAG architecture patterns
+
+**Video/Audio Files:**
+- `1 part. RAG Intro.mp4` - RAG introduction lecture
+- `1st Part_Productized Enterprise RAG.mp4` - Enterprise RAG lecture
+- `2 part Databases for GenAI.mp4` - Databases lecture
+- `2nd Part_Architecture & Design Patterns.mp4` - Architecture lecture
+
+**Processing Pipeline:**
+1. PDFs → Text extraction → Chunking → Embeddings
+2. Audio/Video → Whisper transcription → Chunking → Embeddings
+3. All embeddings → ChromaDB vector store
+4. Ready for RAG queries
+
+**Data Preparation Checklist:**
+- [ ] Place all materials in `./resources/` folder
+- [ ] Run PDF loader on all PDF files
+- [ ] Run audio transcriber on all MP4 files
+- [ ] Run text chunker on all processed text
+- [ ] Generate embeddings and populate vector store
+- [ ] Verify ChromaDB collection has documents
+- [ ] Test retrieval with sample queries

@@ -128,7 +128,7 @@ Create `docker-compose.yml`:
 version: '3.8'
 
 services:
-  # Ollama for LLM inference (Gemma 2 12B)
+  # Ollama for LLM inference (Gemma 3 12B)
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -366,7 +366,7 @@ curl http://localhost:3000
 2. Create admin account (first user becomes admin)
 3. Go to Settings → Connections
 4. Verify Ollama connection: http://ollama:11434
-5. Select Gemma 2 12B model from dropdown
+5. Select Gemma 3 12B model from dropdown
 
 **Step 5: Process Data and Build Knowledge Base**
 
@@ -821,7 +821,7 @@ Implement retrieval strategies:
 ### 4.1 LLM Client
 **File**: `src/llm/llm_client.py`
 
-Implement Ollama client for Gemma 2 12B:
+Implement Ollama client for Gemma 3 12B:
 
 ```python
 import requests
@@ -872,7 +872,7 @@ class OllamaClient:
         max_tokens: int = 500,
         temperature: float = 0.7
     ) -> str:
-        """Chat completion format (recommended for Gemma 2)"""
+        """Chat completion format (recommended for Gemma 3)"""
         response = requests.post(
             f"{self.base_url}/api/chat",
             json={

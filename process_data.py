@@ -5,6 +5,7 @@ This script processes all PDFs and audio files from ./resources folder.
 
 import os
 import sys
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -73,6 +74,9 @@ def main():
     
     whisper_url = os.getenv("WHISPER_BASE_URL", "http://localhost:9000")
     print(f"Using Whisper service at: {whisper_url}")
+    print("NOTE: Video transcription can take 5-30 minutes per file!")
+    print("INFO: MP4 files will be converted to WAV format first for better compatibility")
+    print()
     
     try:
         transcriber = WhisperTranscriber(base_url=whisper_url)
@@ -83,16 +87,40 @@ def main():
         if audio_files:
             for audio_file in audio_files:
                 print(f"Transcribing: {audio_file.name}")
+                
                 try:
-                    result = transcriber.transcribe_audio(str(audio_file))
+                    # Use improved transcribe_audio with MP4 extraction
+                    result = transcriber.transcribe_audio(str(audio_file), extract_audio=True)
+                    
+                    # Save full JSON result
+                    json_output = audio_output / f"{audio_file.stem}_full.json"
+                    with open(json_output, 'w', encoding='utf-8') as f:
+                        json.dump(result, f, indent=2, ensure_ascii=False)
+                    
+                    # Extract text from response
                     text = result.get('text', '')
                     
+                    if not text or len(text.strip()) == 0:
+                        print(f"  ⚠ WARNING: Whisper returned empty transcription!")
+                        print(f"  This usually means:")
+                        print(f"    - The audio track is silent or corrupted")
+                        print(f"    - The audio codec is not supported")
+                        print(f"    - The file is too large for Whisper to process")
+                        print(f"  Skipping this file...")
+                        continue
+                    
+                    # Save clean text
                     output_file = audio_output / f"{audio_file.stem}.txt"
                     with open(output_file, 'w', encoding='utf-8') as f:
                         f.write(text)
-                    print(f"✓ Saved to: {output_file}")
+                    
+                    print(f"✓ Saved {len(text)} characters to: {output_file}")
+                        
                 except Exception as e:
                     print(f"✗ Error: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
             print(f"\n✓ Transcribed {len(audio_files)} audio files\n")
         else:
             print("No audio files found in ./resources\n")

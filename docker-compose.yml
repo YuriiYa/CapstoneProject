@@ -10,6 +10,12 @@ services:
     environment:
       - OLLAMA_HOST=0.0.0.0
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # Whisper for audio transcription
   whisper:
@@ -21,6 +27,12 @@ services:
       - ASR_MODEL=base
       - ASR_ENGINE=openai_whisper
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # ChromaDB for vector storage
   chromadb:
@@ -34,6 +46,12 @@ services:
       - IS_PERSISTENT=TRUE
       - ANONYMIZED_TELEMETRY=FALSE
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   # Flask API Backend for RAG Agent
   flask-api:
@@ -42,29 +60,45 @@ services:
       dockerfile: Dockerfile.flask
     container_name: flask-api
     depends_on:
-      - ollama
-      - whisper
-      - chromadb
+      ollama:
+        condition: service_healthy
+      whisper:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
       - WHISPER_BASE_URL=http://whisper:9000
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
       - FLASK_ENV=production
+      - OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
+      - OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+      - CHROMA_COLLECTION_NAME=rag_knowledge_base
+      - CHUNK_SIZE=800
+      - CHUNK_OVERLAP=150
     volumes:
       - ./data:/app/data
       - ./resources:/app/resources
       - ./src:/app/src
+      - ./api:/app/api
     ports:
       - "5000:5000"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # Open WebUI - Modern Chat Interface
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
     depends_on:
-      - ollama
+      ollama:
+        condition: service_healthy
     ports:
       - "3000:8080"
     volumes:
@@ -77,6 +111,12 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 volumes:
   ollama_data:

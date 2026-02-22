@@ -1,147 +1,350 @@
+# AI-Agentic RAG System - Capstone Project
 
-# TODO:
+## Project Overview
+This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part of the Ciklum AI Academy. The system processes multi-format knowledge bases (PDFs and audio) and generates intelligent responses with autonomous reasoning, tool-calling, and self-reflection capabilities.
 
-# HW4
-Goal
-Build a functional RAG chatbot from scratch that can ingest and process a knowledge base from multiple file formats (PDFs and audio).
+## Features
 
-## Knowledge Base
-- Source 1: The "Databases for GenAI" presentation PDF, available on the AI Academy Google Drive.
-- Source 2: The video recordings of the corresponding lecture.
+### Core RAG Capabilities
+- **Multi-format Data Processing**: Handles PDFs and audio/video files
+- **Intelligent Chunking**: Semantic text chunking with configurable overlap
+- **Vector Search**: ChromaDB-based similarity search with nomic-embed-text embeddings
+- **Hybrid Retrieval**: Combines vector similarity with keyword matching for better results
 
-## Instructions
-Build a complete RAG pipeline in Python that performs the following steps:
-- Load and Process Data:
-  - Write code to load the PDF and reliably extract its text content.
-  - Use a speech-to-text library (e.g., OpenAI's Whisper, or a suitable Hugging Face model) to transcribe the audio recordings into text.
+### Agentic Features
+- **Query Analysis**: Understands user intent and identifies key concepts
+- **Chain-of-Thought Reasoning**: Step-by-step reasoning for complex queries
+- **Tool Execution**: Can use tools like search, calculate, compare, and summarize
+- **Self-Reflection**: Evaluates answer quality and confidence
+- **Self-Correction**: Automatically improves low-confidence answers
 
-## Chunk the Text:
-- Prepare the text from both the PDF and the audio transcription.
-- Split the text into smaller, semantically meaningful chunks.
+### Deployment & Infrastructure
+- **Containerized Architecture**: Docker/Podman-based for easy deployment
+- **Modern UI**: Open WebUI provides ChatGPT-like interface
+- **REST API**: Flask-based API for programmatic access
+- **CLI Interface**: Command-line tool for testing and development
+- **Cross-Platform**: Works on Linux, macOS, Windows, and Raspberry Pi 5
 
-## Embed and Store in a Vector Database:
-- Use any embedding model to convert your text chunks into vector embeddings.
-- Set up a vector database to store these embeddings. As covered in the lecture, ChromaDB or Qdrant are excellent choices for this project due to their ease of use.
+### Evaluation & Monitoring
+- **Confidence Scoring**: Every answer includes a confidence score
+- **Source Citations**: Tracks and displays source documents
+- **Performance Metrics**: Retrieval and generation quality metrics
+- **Test Suite**: Comprehensive test questions for validation
 
-## Retrieve and Generate:
-- Create a function that takes a user's question, converts it into a vector, and queries the database to find the most relevant text chunks.
-- Pass the original question and the retrieved context chunks to an LLM to generate a final answer.
+## Technology Stack
+- **LLM**: Gemma 3 12B (via Ollama)
+- **Embeddings**: nomic-embed-text
+- **Vector DB**: ChromaDB
+- **Audio Transcription**: Whisper
+- **Backend**: Flask + Python
+- **Frontend**: Open WebUI
+- **Containerization**: Docker/Podman
 
+## Quick Start
 
-## Testing and Deliverables
-Test Your Chatbot: Ask your chatbot at least three questions related to the lecture content, such as:
-- "What are the production 'Do's' for RAG?"
-- "What is the difference between standard retrieval and the ColPali approach?"
-- "Why is hybrid search better than vector-only search?"
-Submit Your Work: Provide the following in a link to a GitHub repository:
-Your complete, runnable Python code.
-A requirements.txt file listing all necessary libraries.
-A log showing the answers your chatbot generated for the test questions.
+### Automated Setup (Recommended)
 
-## Reflection
-Write a short reflection (1–2 paragraphs) on your experience:
-What was the most challenging part of this project? (e.g., reliably extracting text from the PDF, transcribing the audio, choosing a chunking strategy, or integrating the database?)
-What new things did you learn or understand from this challenge?
-📌 This task is about demonstrating your ability to build an end-to-end RAG pipeline that handles a multi-format knowledge base.
+**Linux/Mac:**
+```bash
+chmod +x quickstart.sh
+./quickstart.sh
+```
 
-## 📚Materials for the knowledge base
-Link to recordings & slides from session 1 RAG:
-Intro part:
-Recording 1 part. RAG Intro.mp4
-Slides RAG Intro
+**Windows:**
+```cmd
+quickstart.bat
+```
 
-Databases for GenAI part:
-Recording 2 part Databases for GenAI.mp4
-Slides Databases for GenAI
+This will:
+1. Create .env configuration file
+2. Start all services (Ollama, Whisper, ChromaDB, Flask API, Open WebUI)
+3. Pull required models (Gemma 3 12B + nomic-embed-text)
+4. Verify all services are running
 
-Links to recordings & slides from session 2 RAG:
-Productized & Enterprise RAG
-Recording 1st Part_Productized Enterprise RAG.mp4
-Slides Productized & Enterprise RAG
-Architecture & Design Patterns
-Recording 2nd Part_Architecture & Design Patterns.mp4
-Slides Architecture & Design Patterns
+### Manual Setup
 
+### Prerequisites
+- Docker or Podman installed
+- 14GB+ RAM available
+- 25GB+ disk space
+- Python 3.9+ (for local development)
 
-# 📘 Capstone Project Overview
-This is your final assignment in the AI Academy Engineering Track.
-In this version, we’ve placed greater emphasis on the real-world foundations of AI-Agentic system development.
-Our goal is to ensure you cover 80–90% of the core components involved in building modern AI agent systems. Your task is to design and implement an AI-Agentic system that addresses a real problem faced by you, your team, or the broader Ciklum community. Some example options are available here:
-LinkedIn Agent: 	
- - Your agent should produce an output message formatted as a LinkedIn or other social platform post, explaining:
+### Step 1: Start Services
+```bash
+# Using Docker
+docker-compose up -d
 
-  -  What the agent does and how it was built
-  -  The context of its creation — as part of the AI Academy @ Ciklum
+# OR using Podman
+podman-compose up -d
+```
 
-You’ll work through every major stage, including:
-- Data preparation and contextualization
-- RAG pipeline design for information retrieval
-- AI self-reflection and reasoning
-- Tool-calling mechanisms, enabling the agent to take meaningful actions and self-reflect on its performance
-- Evaluation and measurement of your agent’s effectiveness
-- A demo video showcasing your system in action
+### Step 2: Pull Models
+```bash
+# Pull Gemma 3 12B
+docker exec -it ollama ollama pull gemma3:12b-instruct-q4_K_M
 
-This assignment combines engineering depth, system design, and practical evaluation, reflecting how modern agentic AI systems are built, tested, and deployed in real-world environments.
+# Pull embedding model
+docker exec -it ollama ollama pull nomic-embed-text
+```
 
-## Objective
+### Step 3: Install Python Dependencies (for data processing)
+```bash
+pip install -r requirements.txt
+```
 
-Build upon your previous RAG chatbot and data preparation work (HW4) to develop an AI-Agentic system capable of performing autonomous reasoning, taking meaningful tool-based actions, and reflecting on its own decisions and performance. 
-The goal is to demonstrate your ability to design a technically robust, self-reflective agentic system that integrates data retrieval, reasoning, action execution, and evaluation into a cohesive workflow.
+### Step 4: Process Data
+```bash
+# Automated processing (recommended)
+python process_data.py
 
-## 📘 What to Do
-Work through all major components of an agentic AI system:
-- Data Preparation & Contextualization – prepare relevant data your agent will use.
-- RAG Pipeline Design – design your retrieval mechanism (e.g., embeddings + vector store).
-- Reasoning & Reflection – ensure your agent can analyse and self-correct.
-- Tool-Calling Mechanisms – allow it to take actions or run tools based on reasoning.
-- Evaluation – include a simple way to measure success (accuracy, relevance, clarity).
+# Or manual processing:
+# Process PDFs from ./resources folder
+python src/data_processing/pdf_loader.py --input ./resources --output ./data/processed/pdf_text
 
-## 🧰 Technology Stack (flexible):
-Use any preferred stack — Python, LangChain, CrewAI, OpenAI API, or a custom setup.
-Keep it simple but functional: focus on reasoning, inspection, and message generation rather than complexity.
-Your agent may use any preferred stack or framework (e.g., Python + OpenAI API, LangChain, CrewAI, or custom logic). It should be simple yet functional, focusing on reasoning, file inspection, and message generation rather than complexity.
+# Transcribe audio files
+python src/data_processing/audio_transcriber.py --input ./resources --output ./data/processed/audio_transcripts
+```
 
-## 📦 Deliverables
-To complete the assignment, submit the following:
-- Git Repository Link – A publicly accessible GitHub repository containing your working agent’s source code.
-  - Include a short README.md and an architecture.mmd file that describes how to run the agent and what technologies or libraries you used.
-  - The repository should contain enough documentation for mentors to test or review the logic.
+### Step 5: Access the System
+- **Open WebUI**: http://localhost:3000
+- **Flask API**: http://localhost:5000
+- **CLI Interface**: `python main.py`
 
+## Project Structure
+```
+capstone-project/
+├── api/                    # Flask API
+│   ├── app.py             # Main application
+│   ├── routes/            # API endpoints
+│   └── middleware/        # Auth & logging
+├── src/                   # Core components
+│   ├── data_processing/   # PDF & audio processing
+│   ├── embeddings/        # Embedding generation & vector store
+│   ├── retrieval/         # Retrieval strategies
+│   ├── agent/             # Agentic components
+│   ├── llm/               # LLM client
+│   └── evaluation/        # Metrics & evaluation
+├── data/                  # Data storage
+│   ├── raw/              # Original files
+│   ├── processed/        # Processed text
+│   └── embeddings/       # Vector embeddings
+├── resources/            # Knowledge base materials
+├── tests/                # Test suite
+├── docker-compose.yml    # Container orchestration
+├── requirements.txt      # Python dependencies
+└── README.md            # This file
+```
 
-A Demo video containing the overview and demonstration of your solution at work
-Generated Post (Optional) – A short social-style message created by your agent itself, published on LinkedIn or another platform of your choice.
+## Configuration
 
+### Environment Variables (.env)
+```bash
+# Ollama Configuration
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 
-The post should explain, in the agent’s own words:
-What it does and how it was built
-That it was created as part of the Ciklum AI Academy
-(Optional) Include a mention or tag for @Ciklum
+# Whisper Configuration
+WHISPER_BASE_URL=http://localhost:9000
+WHISPER_MODEL=base
 
+# ChromaDB Configuration
+CHROMA_HOST=localhost
+CHROMA_PORT=8000
+CHROMA_COLLECTION_NAME=rag_knowledge_base
 
-Keep it professional, authentic, and concise (5–7 sentences).
+# Application Configuration
+MAX_TOKENS=500
+TEMPERATURE=0.7
+TOP_K_RETRIEVAL=5
+CHUNK_SIZE=800
+CHUNK_OVERLAP=150
+```
 
+## Development Status
 
-Submission Form – Complete the official AI Academy submission form and include:
+### ✅ Completed Components
+- [x] Project structure
+- [x] Docker/Podman configuration
+- [x] LLM client (Ollama + Gemma 3)
+- [x] Embedding generator (nomic-embed-text)
+- [x] Vector store (ChromaDB)
+- [x] PDF loader (pdfplumber)
+- [x] Audio transcriber (Whisper API)
+- [x] Text chunking strategy
+- [x] Retrieval system with hybrid search
+- [x] Reasoning engine (query analysis, chain-of-thought)
+- [x] Tool manager (tool registration & execution)
+- [x] Reflection module (self-assessment)
+- [x] Flask API with all endpoints
+- [x] Evaluation system
+- [x] CLI interface (main.py)
+- [x] LinkedIn post generator
+- [x] Architecture diagram (architecture.mmd)
+- [x] Test questions suite
+- [x] Prompt templates
 
+### 📋 Next Steps
+1. Start all services with docker-compose
+2. Pull Ollama models (Gemma 3 + embeddings)
+3. Process data from ./resources folder
+4. Generate embeddings and populate vector store
+5. Test with required questions
+6. Run evaluation metrics
+7. Create demo video
+8. Generate and publish LinkedIn post
 
-Link to your Git repository
-Link to a short ~5 min demo video recording.
-Link to your public post
-Any additional comments or notes you’d like to share with the review team
-Make sure all links are public and accessible.
+## Usage
 
-📏 Evaluation Criteria
+### Using the CLI Interface
+```bash
+# Start the CLI
+python main.py
 
-Criterion
-Description
-Functionality
-The agent runs and successfully analyses its repository.
-Creativity & Implementation
-Thoughtful design choices, clear logic, and intelligent message generation.
-Relevance
-The agent clearly references its context (AI Academy, Ciklum).
-Presentation
-The generated post is coherent, professional, and aligned with the brief.
-Accessibility
-Links are valid, publicly viewable, and well-documented.
+# Commands:
+# - Type any question to get an answer
+# - 'menu' - Show interactive menu
+# - 'test' - Run required test questions
+# - 'post' - Generate LinkedIn post
+# - 'stats' - Show vector store statistics
+# - 'quit' - Exit
+```
 
+### Using the Flask API
+```bash
+# Start the API (if not using docker-compose)
+python api/app.py
+
+# Example API calls:
+
+# Chat endpoint
+curl -X POST http://localhost:5000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What are the production dos for RAG?", "include_reasoning": true}'
+
+# RAG query endpoint
+curl -X POST http://localhost:5000/api/rag/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Explain hybrid search", "include_reasoning": true}'
+
+# Retrieve context only
+curl -X POST http://localhost:5000/api/rag/retrieve \
+  -H "Content-Type: application/json" \
+  -d '{"query": "ColPali approach", "top_k": 3}'
+
+# Health check
+curl http://localhost:5000/health
+
+# Get stats
+curl http://localhost:5000/api/admin/stats
+```
+
+### Using Open WebUI
+1. Navigate to http://localhost:3000
+2. Create an account (first user becomes admin)
+3. Select "gemma3:12b-instruct-q4_K_M" from model dropdown
+4. Start asking questions about your knowledge base
+
+### Python Client Example
+```python
+import requests
+
+# Query the RAG system
+response = requests.post(
+    'http://localhost:5000/api/chat',
+    json={
+        'message': 'What is hybrid search?',
+        'include_reasoning': True
+    }
+)
+
+result = response.json()
+print(f"Answer: {result['answer']}")
+print(f"Confidence: {result['confidence']:.2%}")
+print(f"Sources: {len(result['sources'])}")
+```
+
+## Testing
+
+### Required Test Questions
+1. "What are the production 'Do's' for RAG?"
+2. "What is the difference between standard retrieval and the ColPali approach?"
+3. "Why is hybrid search better than vector-only search?"
+
+### Running Tests
+```bash
+# Run required test questions via CLI
+python main.py
+# Then type: test
+
+# Or run via Python
+python tests/test_questions.py
+```
+
+## Deployment Options
+
+### Option 1: Laptop/Desktop (Development)
+- Model: gemma3:12b-instruct-q4_K_M
+- RAM: 14GB+
+- Best for development and testing
+
+### Option 2: Raspberry Pi 5 (Edge Deployment)
+- Model: gemma3:2b-instruct-q4_K_M
+- RAM: 8GB
+- See PI5AI.md for detailed setup
+
+## Resources
+
+### Documentation
+- [Ollama Documentation](https://ollama.ai/)
+- [ChromaDB Docs](https://docs.trychroma.com/)
+- [Whisper ASR](https://github.com/ahmetoner/whisper-asr-webservice)
+- [IMPLEMENTATION.md](./IMPLEMENTATION.md) - Detailed implementation guide
+- [PI5AI.md](./PI5AI.md) - Raspberry Pi 5 requirements
+
+### Knowledge Base Materials
+All materials are located in `./resources/`:
+- RAG Intro.pdf
+- Databases for GenAI.pdf
+- Productized & Enterprise RAG.pdf
+- Architecture & Design Patterns.pdf
+- Video lectures (MP4 files)
+
+## Troubleshooting
+
+### Services Not Starting
+```bash
+# Check service status
+docker-compose ps
+
+# View logs
+docker-compose logs -f [service_name]
+
+# Restart services
+docker-compose restart
+```
+
+### Ollama Connection Issues
+```bash
+# Test Ollama
+curl http://localhost:11434/api/tags
+
+# Check if models are loaded
+docker exec -it ollama ollama list
+```
+
+### Memory Issues
+- Use smaller model: gemma3:2b-instruct-q4_K_M
+- Reduce batch sizes
+- Increase Docker memory limits
+
+## Contributing
+This is a capstone project for the Ciklum AI Academy. For questions or issues, please refer to the course materials or contact your mentor.
+
+## License
+Educational project - Ciklum AI Academy
+
+## Acknowledgments
+- Built as part of the Ciklum AI Academy Engineering Track
+- Uses Gemma 3 by Google
+- Powered by Ollama, ChromaDB, and Whisper

@@ -1,0 +1,82 @@
+graph TB
+    subgraph "User Interfaces"
+        UI1[Open WebUI<br/>Web Chat Interface<br/>localhost:3000]
+        UI2[API Clients<br/>curl, Postman, Python]
+        UI3[CLI Interface<br/>main.py]
+    end
+
+    subgraph "Flask API Backend - localhost:5000"
+        API[Flask API<br/>REST Endpoints]
+        
+        subgraph "RAG Agent Core"
+            QA[Query Analysis<br/>ReasoningEngine]
+            RET[Retrieval<br/>Retriever]
+            GEN[Generation<br/>LLM Client]
+            REF[Reflection<br/>ReflectionModule]
+            TOOL[Tool Manager<br/>Tool Execution]
+        end
+    end
+
+    subgraph "External Services"
+        OLLAMA[Ollama<br/>LLM + Embeddings<br/>localhost:11434]
+        WHISPER[Whisper<br/>Audio Transcription<br/>localhost:9000]
+        CHROMA[ChromaDB<br/>Vector Store<br/>localhost:8000]
+    end
+
+    subgraph "Data Processing Pipeline"
+        PDF[PDF Loader<br/>pdfplumber]
+        AUDIO[Audio Transcriber<br/>Whisper API]
+        CHUNK[Text Chunker<br/>Semantic Chunking]
+        EMB[Embedding Generator<br/>nomic-embed-text]
+    end
+
+    subgraph "Data Storage"
+        RAW[./resources/<br/>PDFs & MP4s]
+        PROC[./data/processed/<br/>Extracted Text]
+        VEC[ChromaDB<br/>Vector Embeddings]
+    end
+
+    %% User flow
+    UI1 --> API
+    UI2 --> API
+    UI3 --> API
+
+    %% RAG Agent flow
+    API --> QA
+    QA --> RET
+    RET --> CHROMA
+    CHROMA --> RET
+    RET --> GEN
+    GEN --> OLLAMA
+    OLLAMA --> GEN
+    GEN --> REF
+    REF --> OLLAMA
+    
+    %% Tool execution
+    QA -.->|if needed| TOOL
+    TOOL -.-> RET
+
+    %% Data processing flow
+    RAW --> PDF
+    RAW --> AUDIO
+    PDF --> PROC
+    AUDIO --> WHISPER
+    WHISPER --> PROC
+    PROC --> CHUNK
+    CHUNK --> EMB
+    EMB --> OLLAMA
+    OLLAMA --> EMB
+    EMB --> VEC
+
+    %% Styling
+    classDef userInterface fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef apiLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef agentCore fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef services fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef data fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class UI1,UI2,UI3 userInterface
+    class API apiLayer
+    class QA,RET,GEN,REF,TOOL agentCore
+    class OLLAMA,WHISPER,CHROMA services
+    class RAW,PROC,VEC,PDF,AUDIO,CHUNK,EMB data

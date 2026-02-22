@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Ollama for LLM inference (Gemma 3 12B)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+
+  # Whisper for audio transcription
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: whisper
+    ports:
+      - "9000:9000"
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    restart: unless-stopped
+
+  # ChromaDB for vector storage
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+
+  # Flask API Backend for RAG Agent
+  flask-api:
+    build: 
+      context: .
+      dockerfile: Dockerfile.flask
+    container_name: flask-api
+    depends_on:
+      - ollama
+      - whisper
+      - chromadb
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WHISPER_BASE_URL=http://whisper:9000
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - FLASK_ENV=production
+    volumes:
+      - ./data:/app/data
+      - ./resources:/app/resources
+      - ./src:/app/src
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+  # Open WebUI - Modern Chat Interface
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    depends_on:
+      - ollama
+    ports:
+      - "3000:8080"
+    volumes:
+      - open_webui_data:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=your-secret-key-change-this
+      - ENABLE_RAG_WEB_SEARCH=false
+      - ENABLE_RAG_LOCAL_WEB_FETCH=false
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ollama_data:
+  chroma_data:
+  open_webui_data:

@@ -50,11 +50,17 @@ def main():
         for pdf_file in pdf_files:
             print(f"Processing: {pdf_file.name}")
             try:
-                text = pdf_loader.load_pdf(str(pdf_file))
+                result = pdf_loader.load_pdf(str(pdf_file))
                 output_file = pdf_output / f"{pdf_file.stem}.txt"
+                
+                # Extract text from the dictionary structure
                 with open(output_file, 'w', encoding='utf-8') as f:
-                    f.write(text)
-                print(f"✓ Saved to: {output_file}")
+                    for page_data in result['content']:
+                        f.write(f"=== Page {page_data['page']} ===\n")
+                        f.write(page_data['text'])
+                        f.write("\n\n")
+                
+                print(f"✓ Extracted {result['metadata']['pages']} pages to: {output_file}")
             except Exception as e:
                 print(f"✗ Error: {e}")
         print(f"\n✓ Processed {len(pdf_files)} PDF files\n")
@@ -101,7 +107,7 @@ def main():
     chunk_size = int(os.getenv("CHUNK_SIZE", 800))
     chunk_overlap = int(os.getenv("CHUNK_OVERLAP", 150))
     
-    chunker = TextChunker(chunk_size=chunk_size, overlap=chunk_overlap)
+    chunker = TextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     
     all_text_files = list(pdf_output.glob("*.txt")) + list(audio_output.glob("*.txt"))
     all_chunks = []
@@ -112,12 +118,13 @@ def main():
             with open(text_file, 'r', encoding='utf-8') as f:
                 text = f.read()
             
+            # chunk_text returns list of dicts with 'text' and 'metadata' keys
             chunks = chunker.chunk_text(text)
             
-            # Add metadata
+            # Add source information to metadata
             for i, chunk in enumerate(chunks):
                 all_chunks.append({
-                    'text': chunk,
+                    'text': chunk['text'],  # Extract text from chunk dict
                     'source': text_file.name,
                     'chunk_id': f"{text_file.stem}_{i}"
                 })

@@ -334,7 +334,8 @@ podman-compose ps
 **Step 2: Pull Models into Ollama**
 ```bash
 # Pull Gemma 3 12B Instruct (quantized for efficiency)
-podman exec -it ollama ollama pull gemma3:12b-instruct-q4_K_M
+# gemma-3-12b-it-Q4_K_M:latest
+podman exec ollama ollama pull kwangsuklee/gemma-3-12b-it-Q4_K_M
 
 # Pull embedding model (nomic-embed-text is excellent for RAG)
 podman exec -it ollama ollama pull nomic-embed-text

@@ -52,14 +52,20 @@ chmod +x quickstart.sh
 
 **Windows:**
 ```cmd
-quickstart.bat
+REM If you encounter Docker build errors, use the simplified version:
+quickstart-windows.bat
+
+REM This runs services in Docker and Flask locally
+REM See WINDOWS_SETUP.md for details
 ```
 
 This will:
 1. Create .env configuration file
-2. Start all services (Ollama, Whisper, ChromaDB, Flask API, Open WebUI)
+2. Start all services (Ollama, Whisper, ChromaDB, Open WebUI)
 3. Pull required models (Gemma 3 12B + nomic-embed-text)
 4. Verify all services are running
+
+**Note for Windows users:** If you see Docker build errors, the simplified setup runs Flask locally instead of in Docker. This is actually easier for development! See [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) for details.
 
 ### Manual Setup
 

@@ -1,3 +1,7 @@
+# Simplified Docker Compose - Services Only (No Flask Build)
+# Use this if you have build issues on Windows
+# Run Flask API locally with: python api/app.py
+
 services:
   # Ollama for LLM inference (Gemma 3 12B)
   ollama:
@@ -33,30 +37,6 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - ANONYMIZED_TELEMETRY=FALSE
-    restart: unless-stopped
-
-  # Flask API Backend for RAG Agent
-  flask-api:
-    build: 
-      context: .
-      dockerfile: Dockerfile.flask
-    container_name: flask-api
-    depends_on:
-      - ollama
-      - whisper
-      - chromadb
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - WHISPER_BASE_URL=http://whisper:9000
-      - CHROMA_HOST=chromadb
-      - CHROMA_PORT=8000
-      - FLASK_ENV=production
-    volumes:
-      - ./data:/app/data
-      - ./resources:/app/resources
-      - ./src:/app/src
-    ports:
-      - "5000:5000"
     restart: unless-stopped
 
   # Open WebUI - Modern Chat Interface

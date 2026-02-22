@@ -3,13 +3,30 @@
 ## Essential Commands
 
 ### Start/Stop Services
+
+**Linux/Mac:**
 ```bash
 # Start all services
 docker-compose up -d
 
 # Stop all services
 docker-compose down
+```
 
+**Windows (Simplified - Recommended):**
+```cmd
+REM Start services (without Flask)
+docker-compose -f docker-compose.simple.yml up -d
+
+REM Stop services
+docker-compose -f docker-compose.simple.yml down
+
+REM Run Flask locally (in separate terminal)
+python api/app.py
+```
+
+**All Platforms:**
+```bash
 # Restart a service
 docker-compose restart [service_name]
 

@@ -48,6 +48,37 @@ docker exec -it ollama ollama pull nomic-embed-text
 docker exec -it ollama ollama run gemma3:12b-instruct-q4_K_M "Hello"
 ```
 
+### 2a. Ollama 404 Error - Model Name Mismatch
+
+**Problem**: `404 Client Error: Not Found for url: http://localhost:11434/api/generate`
+
+**Root Cause**: The model name in `.env` doesn't match the actual model in Ollama.
+
+**Solution**:
+```bash
+# Step 1: Check what models you have
+docker exec ollama ollama list
+
+# Step 2: Update .env to match your model name
+# If you see: kwangsuklee/gemma-3-12b-it-Q4_K_M:latest
+# Update .env:
+OLLAMA_MODEL=kwangsuklee/gemma-3-12b-it-Q4_K_M:latest
+
+# Step 3: Test the connection
+python test_ollama_connection.py
+
+# Step 4: Run the application
+python main.py
+```
+
+**Alternative**: Pull the standard model
+```bash
+docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
+# Then use: OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
+```
+
+See `OLLAMA_404_FIX.md` for detailed explanation.
+
 ### 3. Whisper Service Errors
 
 **Problem**: Audio transcription fails

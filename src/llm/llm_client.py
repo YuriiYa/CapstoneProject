@@ -11,7 +11,7 @@ class OllamaClient:
         model: str = None
     ):
         self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.model = model or os.getenv("OLLAMA_MODEL", "gemma3:12b-instruct-q4_K_M")
+        self.model = model or os.getenv("OLLAMA_MODEL", "kwangsuklee/gemma-3-12b-it-Q4_K_M:latest")
     
     def generate(
         self,

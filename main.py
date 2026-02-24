@@ -51,7 +51,7 @@ class RAGAgentCLI:
             
             self.llm_client = OllamaClient(
                 base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-                model=os.getenv("OLLAMA_MODEL", "gemma3:12b-instruct-q4_K_M")
+                model=os.getenv("OLLAMA_MODEL", "kwangsuklee/gemma-3-12b-it-Q4_K_M:latest")
             )
             print("✓ LLM client initialized")
             

@@ -72,7 +72,7 @@ services:
       - CHROMA_HOST=chromadb
       - CHROMA_PORT=8000
       - FLASK_ENV=production
-      - OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
+      - OLLAMA_MODEL=kwangsuklee/gemma-3-12b-it-Q4_K_M:latest
       - OLLAMA_EMBEDDING_MODEL=nomic-embed-text
       - CHROMA_COLLECTION_NAME=rag_knowledge_base
       - CHUNK_SIZE=800

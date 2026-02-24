@@ -210,3 +210,22 @@ __marimo__/
 /resources/1 part. RAG Intro.mp4
 /resources/1st Part_Productized Enterprise RAG.mp4
 /resources/2 part Databases for GenAI.mp4
+
+# Project-specific
+# Data directories (keep structure, ignore content)
+data/processed/
+data/embeddings/
+data/raw/
+
+# Temporary test files
+test_*.py
+*_test_temp.py
+
+# Temporary audio files from transcription
+*.wav
+temp_audio_*.wav
+
+# Docker volumes
+ollama_data/
+chroma_data/
+open_webui_data/

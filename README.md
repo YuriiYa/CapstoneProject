@@ -3,10 +3,24 @@
 ## Project Overview
 This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part of the Ciklum AI Academy. The system processes multi-format knowledge bases (PDFs and audio) and generates intelligent responses with autonomous reasoning, tool-calling, and self-reflection capabilities.
 
+## Table of Contents
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Testing](#testing)
+- [Deployment Options](#deployment-options)
+- [Quick Reference](#quick-reference)
+- [File Organization](#file-organization)
+- [Troubleshooting](#troubleshooting)
+- [Resources](#resources)
+
 ## Features
 
 ### Core RAG Capabilities
-- **Multi-format Data Processing**: Handles PDFs and audio/video files
+- **Multi-format Data Processing**: Handles PDFs and audio/video files with ffmpeg-based audio extraction
 - **Intelligent Chunking**: Semantic text chunking with configurable overlap
 - **Vector Search**: ChromaDB-based similarity search with nomic-embed-text embeddings
 - **Hybrid Retrieval**: Combines vector similarity with keyword matching for better results
@@ -19,7 +33,7 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 - **Self-Correction**: Automatically improves low-confidence answers
 
 ### Deployment & Infrastructure
-- **Containerized Architecture**: Docker/Podman-based for easy deployment
+- **Containerized Architecture**: Docker/Podman-based with health checks and proper orchestration
 - **Modern UI**: Open WebUI provides ChatGPT-like interface
 - **REST API**: Flask-based API for programmatic access
 - **CLI Interface**: Command-line tool for testing and development
@@ -36,109 +50,146 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 - **Embeddings**: nomic-embed-text
 - **Vector DB**: ChromaDB
 - **Audio Transcription**: Whisper
+- **Audio Processing**: ffmpeg (for MP4 to WAV conversion)
 - **Backend**: Flask + Python
 - **Frontend**: Open WebUI
 - **Containerization**: Docker/Podman
 
 ## Quick Start
 
+### Prerequisites
+- Docker or Podman installed
+- 14GB+ RAM available (8GB for Raspberry Pi 5)
+- 25GB+ disk space
+- Python 3.11+ (for local development)
+- ffmpeg (included in Docker, required for local Windows setup)
+
 ### Automated Setup (Recommended)
 
 **Linux/Mac:**
 ```bash
-chmod +x quickstart.sh
-./quickstart.sh
+chmod +x docker-startup.sh
+./docker-startup.sh
 ```
 
 **Windows:**
-```cmd
-REM If you encounter Docker build errors, use the simplified version:
-quickstart-windows.bat
-
-REM This runs services in Docker and Flask locally
-REM See WINDOWS_SETUP.md for details
+```batch
+docker-startup.bat
 ```
 
 This will:
-1. Create .env configuration file
-2. Start all services (Ollama, Whisper, ChromaDB, Open WebUI)
+1. Start all services (Ollama, Whisper, ChromaDB, Flask API, Open WebUI)
+2. Wait for health checks to pass
 3. Pull required models (Gemma 3 12B + nomic-embed-text)
-4. Verify all services are running
+4. Display service URLs
 
-**Note for Windows users:** If you see Docker build errors, the simplified setup runs Flask locally instead of in Docker. This is actually easier for development! See [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) for details.
+**Windows Alternative (if build issues occur):**
+```batch
+REM Use simplified setup (services only, Flask runs locally)
+docker compose -f docker-compose.simple.yml up -d
+python api/app.py
+```
 
-### Manual Setup
+See [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) and [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) for details.
 
-### Prerequisites
-- Docker or Podman installed
-- 14GB+ RAM available
-- 25GB+ disk space
-- Python 3.9+ (for local development)
+### Manual Setup Steps
 
-### Step 1: Start Services
+#### 1. Start Services
 ```bash
 # Using Docker
-docker-compose up -d
+docker compose up -d
 
 # OR using Podman
 podman-compose up -d
 ```
 
-### Step 2: Pull Models
+#### 2. Pull Models
 ```bash
-# Pull Gemma 3 12B
-docker exec -it ollama ollama pull gemma3:12b-instruct-q4_K_M
+# Pull Gemma 3 12B (Laptop/Desktop)
+docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
+
+# OR Gemma 3 2B (Raspberry Pi 5)
+docker exec ollama ollama pull gemma3:2b-instruct-q4_K_M
 
 # Pull embedding model
-docker exec -it ollama ollama pull nomic-embed-text
+docker exec ollama ollama pull nomic-embed-text
+
+# Verify models
+docker exec ollama ollama list
 ```
 
-### Step 3: Install Python Dependencies (for data processing)
+#### 3. Install Python Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 4: Process Data
+#### 4. Process Data
 ```bash
 # Automated processing (recommended)
 python process_data.py
 
-# Or manual processing:
-# Process PDFs from ./resources folder
-python src/data_processing/pdf_loader.py --input ./resources --output ./data/processed/pdf_text
-
-# Transcribe audio files
-python src/data_processing/audio_transcriber.py --input ./resources --output ./data/processed/audio_transcripts
+# Or transcribe videos only
+python transcribe_videos.py
 ```
 
-### Step 5: Access the System
+#### 5. Access the System
 - **Open WebUI**: http://localhost:3000
 - **Flask API**: http://localhost:5000
+- **API Docs**: http://localhost:5000/apidocs
 - **CLI Interface**: `python main.py`
 
 ## Project Structure
+
 ```
-capstone-project/
-├── api/                    # Flask API
-│   ├── app.py             # Main application
-│   ├── routes/            # API endpoints
-│   └── middleware/        # Auth & logging
-├── src/                   # Core components
-│   ├── data_processing/   # PDF & audio processing
-│   ├── embeddings/        # Embedding generation & vector store
-│   ├── retrieval/         # Retrieval strategies
-│   ├── agent/             # Agentic components
-│   ├── llm/               # LLM client
-│   └── evaluation/        # Metrics & evaluation
-├── data/                  # Data storage
-│   ├── raw/              # Original files
-│   ├── processed/        # Processed text
-│   └── embeddings/       # Vector embeddings
-├── resources/            # Knowledge base materials
-├── tests/                # Test suite
-├── docker-compose.yml    # Container orchestration
-├── requirements.txt      # Python dependencies
-└── README.md            # This file
+CapstoneProject/
+├── api/                          # Flask API backend
+│   ├── app.py                   # Main API application
+│   ├── routes/                  # API routes
+│   └── middleware/              # API middleware
+├── src/                         # Source code
+│   ├── agent/                   # Agentic components
+│   │   ├── reasoning_engine.py # Query analysis & reasoning
+│   │   ├── tool_manager.py     # Tool registration & execution
+│   │   ├── reflection_module.py # Self-assessment
+│   │   └── post_generator.py   # LinkedIn post generation
+│   ├── data_processing/         # Data processing modules
+│   │   ├── pdf_loader.py       # PDF text extraction
+│   │   ├── audio_transcriber.py # Audio transcription (ffmpeg + Whisper)
+│   │   └── text_chunker.py     # Text chunking strategies
+│   ├── embeddings/              # Embedding generation
+│   │   ├── embedding_generator.py # Ollama embeddings
+│   │   └── vector_store.py     # ChromaDB interface
+│   ├── evaluation/              # Evaluation metrics
+│   │   └── evaluator.py        # RAG evaluation
+│   ├── llm/                     # LLM client and prompts
+│   │   ├── llm_client.py       # Ollama client
+│   │   └── prompt_templates.py # Prompt templates
+│   └── retrieval/               # Retrieval logic
+│       └── retriever.py        # Hybrid retrieval
+├── data/                        # Data storage (gitignored)
+│   ├── processed/               # Processed data
+│   │   ├── pdf_text/           # Extracted PDF text
+│   │   ├── audio_transcripts/  # Audio transcriptions
+│   │   └── chunks/             # Text chunks
+│   ├── embeddings/             # Generated embeddings
+│   └── raw/                    # Raw data files
+├── resources/                   # Source materials
+│   ├── *.pdf                   # PDF documents
+│   └── *.mp4                   # Video files (gitignored)
+├── tests/                       # Test files
+│   ├── test_questions.py       # RAG system tests
+│   └── __init__.py
+├── tools/                       # Utility tools
+├── docker-compose.yml           # Full Docker configuration
+├── docker-compose.simple.yml    # Simplified Docker config (Windows)
+├── Dockerfile.flask             # Flask container with ffmpeg
+├── docker-startup.sh            # Docker startup (Linux/Mac)
+├── docker-startup.bat           # Docker startup (Windows)
+├── main.py                      # CLI interface
+├── process_data.py              # Data processing pipeline
+├── transcribe_videos.py         # Video transcription utility
+├── requirements.txt             # Python dependencies
+└── *.md                         # Documentation files
 ```
 
 ## Configuration
@@ -167,47 +218,24 @@ CHUNK_SIZE=800
 CHUNK_OVERLAP=150
 ```
 
-## Development Status
+### Service URLs
 
-### ✅ Completed Components
-- [x] Project structure
-- [x] Docker/Podman configuration
-- [x] LLM client (Ollama + Gemma 3)
-- [x] Embedding generator (nomic-embed-text)
-- [x] Vector store (ChromaDB)
-- [x] PDF loader (pdfplumber)
-- [x] Audio transcriber (Whisper API)
-- [x] Text chunking strategy
-- [x] Retrieval system with hybrid search
-- [x] Reasoning engine (query analysis, chain-of-thought)
-- [x] Tool manager (tool registration & execution)
-- [x] Reflection module (self-assessment)
-- [x] Flask API with all endpoints
-- [x] Evaluation system
-- [x] CLI interface (main.py)
-- [x] LinkedIn post generator
-- [x] Architecture diagram (architecture.mmd)
-- [x] Test questions suite
-- [x] Prompt templates
-
-### 📋 Next Steps
-1. Start all services with docker-compose
-2. Pull Ollama models (Gemma 3 + embeddings)
-3. Process data from ./resources folder
-4. Generate embeddings and populate vector store
-5. Test with required questions
-6. Run evaluation metrics
-7. Create demo video
-8. Generate and publish LinkedIn post
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Open WebUI | http://localhost:3000 | Web chat interface |
+| Flask API | http://localhost:5000 | REST API |
+| Ollama | http://localhost:11434 | LLM service |
+| ChromaDB | http://localhost:8000 | Vector database |
+| Whisper | http://localhost:9000 | Audio transcription |
 
 ## Usage
 
-### Using the CLI Interface
+### CLI Interface
 ```bash
 # Start the CLI
 python main.py
 
-# Commands:
+# Available commands:
 # - Type any question to get an answer
 # - 'menu' - Show interactive menu
 # - 'test' - Run required test questions
@@ -216,36 +244,40 @@ python main.py
 # - 'quit' - Exit
 ```
 
-### Using the Flask API
+### Flask API
+
+#### Health Check
 ```bash
-# Start the API (if not using docker-compose)
-python api/app.py
+curl http://localhost:5000/health
+```
 
-# Example API calls:
-
-# Chat endpoint
+#### Chat Endpoint
+```bash
 curl -X POST http://localhost:5000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "What are the production dos for RAG?", "include_reasoning": true}'
+```
 
-# RAG query endpoint
+#### RAG Query
+```bash
 curl -X POST http://localhost:5000/api/rag/query \
   -H "Content-Type: application/json" \
   -d '{"question": "Explain hybrid search", "include_reasoning": true}'
+```
 
-# Retrieve context only
+#### Retrieve Context Only
+```bash
 curl -X POST http://localhost:5000/api/rag/retrieve \
   -H "Content-Type: application/json" \
   -d '{"query": "ColPali approach", "top_k": 3}'
+```
 
-# Health check
-curl http://localhost:5000/health
-
-# Get stats
+#### Get Statistics
+```bash
 curl http://localhost:5000/api/admin/stats
 ```
 
-### Using Open WebUI
+### Open WebUI
 1. Navigate to http://localhost:3000
 2. Create an account (first user becomes admin)
 3. Select "gemma3:12b-instruct-q4_K_M" from model dropdown
@@ -279,55 +311,170 @@ print(f"Sources: {len(result['sources'])}")
 
 ### Running Tests
 ```bash
-# Run required test questions via CLI
+# Via CLI
 python main.py
 # Then type: test
 
-# Or run via Python
+# Or directly
 python tests/test_questions.py
 ```
 
 ## Deployment Options
 
 ### Option 1: Laptop/Desktop (Development)
-- Model: gemma3:12b-instruct-q4_K_M
-- RAM: 14GB+
-- Best for development and testing
+- **Model**: gemma3:12b-instruct-q4_K_M
+- **RAM**: 14GB+
+- **Storage**: 25GB+
+- **CPU**: 4+ cores
+- **Best for**: Development and testing
 
 ### Option 2: Raspberry Pi 5 (Edge Deployment)
-- Model: gemma3:2b-instruct-q4_K_M
-- RAM: 8GB
-- See PI5AI.md for detailed setup
+- **Model**: gemma3:2b-instruct-q4_K_M
+- **RAM**: 8GB
+- **Storage**: 64GB+
+- **Power**: 27W USB-C PD (52Pi PD Power HAT recommended)
+- **Best for**: Edge deployment and demos
 
-## Resources
+See [PI5AI.md](./PI5AI.md) for detailed Raspberry Pi 5 setup.
 
-### Documentation
-- [Ollama Documentation](https://ollama.ai/)
-- [ChromaDB Docs](https://docs.trychroma.com/)
-- [Whisper ASR](https://github.com/ahmetoner/whisper-asr-webservice)
-- [IMPLEMENTATION.md](./IMPLEMENTATION.md) - Detailed implementation guide
-- [PI5AI.md](./PI5AI.md) - Raspberry Pi 5 requirements
+## Quick Reference
 
-### Knowledge Base Materials
-All materials are located in `./resources/`:
-- RAG Intro.pdf
-- Databases for GenAI.pdf
-- Productized & Enterprise RAG.pdf
-- Architecture & Design Patterns.pdf
-- Video lectures (MP4 files)
+### Essential Commands
+
+#### Start/Stop Services
+```bash
+# Start all services
+docker compose up -d
+
+# Stop all services
+docker compose down
+
+# Restart a service
+docker compose restart [service_name]
+
+# View logs
+docker compose logs -f [service_name]
+
+# Check status
+docker compose ps
+```
+
+#### Pull Models
+```bash
+# Gemma 3 12B (Laptop/Desktop)
+docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
+
+# Gemma 3 2B (Raspberry Pi 5)
+docker exec ollama ollama pull gemma3:2b-instruct-q4_K_M
+
+# Embedding model
+docker exec ollama ollama pull nomic-embed-text
+
+# List models
+docker exec ollama ollama list
+```
+
+#### Process Data
+```bash
+# Full pipeline
+python process_data.py
+
+# Transcribe videos only
+python transcribe_videos.py
+
+# Manual steps
+python src/data_processing/pdf_loader.py --input ./resources
+python src/data_processing/audio_transcriber.py --input ./resources
+```
+
+### Docker Management
+```bash
+# View logs
+docker compose logs -f
+
+# Check resource usage
+docker stats
+
+# Enter container
+docker exec -it [container] /bin/bash
+
+# Remove all containers and volumes
+docker compose down -v
+
+# Rebuild containers
+docker compose up -d --build
+```
+
+## File Organization
+
+### Permanent Files (Keep)
+
+#### Core Application
+- `main.py` - CLI interface
+- `process_data.py` - Data processing pipeline
+- `transcribe_videos.py` - **Video transcription utility**
+- `api/app.py` - Flask API backend
+- `src/**/*.py` - All source code modules
+
+#### Docker Configuration
+- `docker-compose.yml` - Full Docker setup with Flask
+- `docker-compose.simple.yml` - Simplified setup (Windows)
+- `Dockerfile.flask` - Flask container with ffmpeg
+- `docker-startup.sh` / `docker-startup.bat` - Startup scripts
+
+#### Documentation
+- `README.md` - This file (main documentation)
+- `IMPLEMENTATION.md` - System architecture and design
+- `PI5AI.md` - Raspberry Pi 5 deployment guide
+- `WINDOWS_SETUP.md` - Windows-specific setup
+- `DOCKER_DEPLOYMENT.md` - Docker deployment guide
+- `DOCKER_UPDATES.md` - Docker configuration changes
+- `TRANSCRIPTION_SUCCESS.md` - Audio transcription solution
+- `DATA_PROCESSING_COMPLETE.md` - Data processing summary
+- `TROUBLESHOOTING.md` - Common issues and solutions
+- `COMPLETION_SUMMARY.md` - Project completion summary
+
+#### Configuration
+- `requirements.txt` - Python dependencies
+- `.env` - Environment variables (user-created)
+- `.gitignore` - Git ignore patterns
+- `architecture.mmd` - System architecture diagram
+
+### Why Keep `transcribe_videos.py`?
+
+This standalone utility is **NOT temporary** because:
+1. Users can transcribe new videos without running full pipeline
+2. Useful for debugging transcription issues
+3. Referenced in documentation
+4. Focused tool for one specific task
+
+**Example use cases:**
+```bash
+# Transcribe new videos
+python transcribe_videos.py
+
+# In Docker container
+docker compose exec flask-api python transcribe_videos.py
+```
+
+### Temporary Files (Gitignored)
+- `test_*.py` - Temporary test files
+- `*.wav` - Temporary audio extractions
+- `data/processed/` - Generated data
+- `data/embeddings/` - Generated embeddings
 
 ## Troubleshooting
 
 ### Services Not Starting
 ```bash
 # Check service status
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f [service_name]
+docker compose logs -f [service_name]
 
 # Restart services
-docker-compose restart
+docker compose restart
 ```
 
 ### Ollama Connection Issues
@@ -336,13 +483,126 @@ docker-compose restart
 curl http://localhost:11434/api/tags
 
 # Check if models are loaded
-docker exec -it ollama ollama list
+docker exec ollama ollama list
+
+# Pull models again
+docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
 ```
 
 ### Memory Issues
-- Use smaller model: gemma3:2b-instruct-q4_K_M
-- Reduce batch sizes
-- Increase Docker memory limits
+- Use smaller model: `gemma3:2b-instruct-q4_K_M`
+- Reduce batch sizes in configuration
+- Increase Docker memory limits in Docker Desktop settings
+
+### Poor Answers
+```bash
+# Reprocess data
+python process_data.py
+
+# Check vector store
+curl http://localhost:5000/api/admin/stats
+```
+
+### Clean Restart
+```bash
+docker compose down
+docker volume rm capstoneproject_chroma_data
+docker compose up -d
+python process_data.py
+```
+
+### Windows Build Issues
+If you encounter Docker build errors on Windows:
+```batch
+REM Use simplified setup
+docker compose -f docker-compose.simple.yml up -d
+
+REM Run Flask locally
+python api/app.py
+```
+
+See [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) for details.
+
+### Audio Transcription Issues
+If videos return empty transcriptions:
+- Check ffmpeg is installed: `ffmpeg -version`
+- Verify Whisper service: `curl http://localhost:9000/`
+- Check Whisper logs: `docker logs whisper`
+- See [TRANSCRIPTION_SUCCESS.md](./TRANSCRIPTION_SUCCESS.md) for solution details
+
+## Resources
+
+### Documentation
+- [IMPLEMENTATION.md](./IMPLEMENTATION.md) - Detailed implementation guide
+- [PI5AI.md](./PI5AI.md) - Raspberry Pi 5 requirements
+- [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) - Complete Docker guide
+- [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) - Windows-specific instructions
+- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Common issues
+- [TRANSCRIPTION_SUCCESS.md](./TRANSCRIPTION_SUCCESS.md) - Audio transcription solution
+
+### External Resources
+- [Ollama Documentation](https://ollama.ai/)
+- [ChromaDB Docs](https://docs.trychroma.com/)
+- [Whisper ASR](https://github.com/ahmetoner/whisper-asr-webservice)
+- [Gemma 3 Model Card](https://ai.google.dev/gemma)
+
+### Knowledge Base Materials
+All materials are located in `./resources/`:
+- RAG Intro.pdf
+- Databases for GenAI.pdf
+- Productized & Enterprise RAG.pdf
+- Architecture & Design Patterns.pdf
+- Video lectures (MP4 files - transcribed automatically)
+
+## Development Status
+
+### ✅ Completed Components
+- [x] Project structure
+- [x] Docker/Podman configuration with health checks
+- [x] LLM client (Ollama + Gemma 3)
+- [x] Embedding generator (nomic-embed-text)
+- [x] Vector store (ChromaDB)
+- [x] PDF loader (pdfplumber)
+- [x] Audio transcriber (Whisper API + ffmpeg)
+- [x] Text chunking strategy
+- [x] Retrieval system with hybrid search
+- [x] Reasoning engine (query analysis, chain-of-thought)
+- [x] Tool manager (tool registration & execution)
+- [x] Reflection module (self-assessment)
+- [x] Flask API with all endpoints
+- [x] Evaluation system
+- [x] CLI interface (main.py)
+- [x] LinkedIn post generator
+- [x] Architecture diagram (architecture.mmd)
+- [x] Test questions suite
+- [x] Prompt templates
+- [x] Docker deployment with ffmpeg
+- [x] Data processing pipeline
+- [x] Vector store population
+
+### 📋 Next Steps
+1. ✅ Start all services with docker-compose
+2. ✅ Pull Ollama models (Gemma 3 + embeddings)
+3. ✅ Process data from ./resources folder
+4. ✅ Generate embeddings and populate vector store
+5. ⏳ Test with required questions
+6. ⏳ Run evaluation metrics
+7. ⏳ Create demo video
+8. ⏳ Generate and publish LinkedIn post
+
+## System Requirements
+
+### Minimum Requirements
+- **RAM**: 14GB (8GB for Raspberry Pi 5 with Gemma 3 2B)
+- **Storage**: 25GB free space
+- **CPU**: 4+ cores recommended
+- **OS**: Linux, macOS, Windows 10/11, or Raspberry Pi OS
+
+### Recommended Requirements
+- **RAM**: 32GB for optimal performance
+- **Storage**: 50GB+ for multiple models
+- **CPU**: 8+ cores
+- **GPU**: Optional (not required, CPU-only deployment)
 
 ## Contributing
 This is a capstone project for the Ciklum AI Academy. For questions or issues, please refer to the course materials or contact your mentor.
@@ -354,3 +614,13 @@ Educational project - Ciklum AI Academy
 - Built as part of the Ciklum AI Academy Engineering Track
 - Uses Gemma 3 by Google
 - Powered by Ollama, ChromaDB, and Whisper
+- Audio processing with ffmpeg
+
+---
+
+**Quick Links:**
+- [Quick Start](#quick-start)
+- [Docker Deployment Guide](./DOCKER_DEPLOYMENT.md)
+- [Windows Setup](./WINDOWS_SETUP.md)
+- [Troubleshooting](./TROUBLESHOOTING.md)
+- [Implementation Details](./IMPLEMENTATION.md)

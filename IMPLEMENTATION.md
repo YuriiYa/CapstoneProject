@@ -1,6 +1,7 @@
 # Implementation Plan: AI-Agentic RAG System
 
 ## Project Overview
+
 Build an AI-Agentic system that extends a RAG chatbot with autonomous reasoning, tool-calling, self-reflection, and evaluation capabilities. The system will process multi-format knowledge bases (PDFs and audio) and generate intelligent responses with self-assessment.
 
 ## Deployment Architecture
@@ -10,6 +11,7 @@ Build an AI-Agentic system that extends a RAG chatbot with autonomous reasoning,
 This implementation uses a fully containerized architecture with the following benefits:
 
 **Why Containers?**
+
 - ✅ Reproducible environment across different machines
 - ✅ Easy deployment and scaling
 - ✅ Isolated services with clear dependencies
@@ -18,6 +20,7 @@ This implementation uses a fully containerized architecture with the following b
 - ✅ Works on Linux, Windows, and macOS
 
 **Why Ollama over LM Studio?**
+
 - ✅ Built for server/container deployment (no GUI)
 - ✅ Official Docker images available
 - ✅ Simple API (OpenAI-compatible)
@@ -26,6 +29,7 @@ This implementation uses a fully containerized architecture with the following b
 - ✅ Supports multiple models simultaneously
 
 **Service Architecture:**
+
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │                      User Interfaces                          │
@@ -53,6 +57,7 @@ This implementation uses a fully containerized architecture with the following b
 ```
 
 **Data Flow:**
+
 1. User asks question via Open WebUI or API
 2. Flask API receives request
 3. RAG Agent:
@@ -66,6 +71,7 @@ This implementation uses a fully containerized architecture with the following b
 ## Phase 1: Environment Setup
 
 ### 1.1 Project Structure
+
 ```
 capstone-project/
 ├── api/
@@ -124,6 +130,7 @@ capstone-project/
 ### 1.2 Container Setup with Podman/Docker
 
 Create `docker-compose.yml`:
+
 ```yaml
 version: '3.8'
 
@@ -168,7 +175,7 @@ services:
 
   # Flask API Backend for RAG Agent
   flask-api:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.flask
     container_name: flask-api
@@ -216,6 +223,7 @@ volumes:
 ```
 
 Create `Dockerfile.flask` for Flask API:
+
 ```dockerfile
 FROM python:3.11-slim
 
@@ -242,6 +250,7 @@ CMD ["python", "api/app.py"]
 ```
 
 Create `.env`:
+
 ```bash
 # Ollama Configuration
 OLLAMA_BASE_URL=http://localhost:11434
@@ -268,6 +277,7 @@ CHUNK_OVERLAP=150
 ### 1.3 Install Dependencies
 
 Create `requirements.txt`:
+
 ```
 # Flask Web Framework
 flask>=3.0.0
@@ -313,13 +323,12 @@ flasgger>=0.9.7
 # Validation
 marshmallow>=3.20.0
 
-# Caching
-redis>=5.0.0
 ```
 
 ### 1.4 Deployment Steps
 
 **Step 1: Start Services**
+
 ```bash
 # Using Podman
 podman-compose up -d
@@ -332,6 +341,7 @@ podman-compose ps
 ```
 
 **Step 2: Pull Models into Ollama**
+
 ```bash
 # Pull Gemma 3 12B Instruct (quantized for efficiency)
 # gemma-3-12b-it-Q4_K_M:latest
@@ -345,6 +355,7 @@ podman exec -it ollama ollama list
 ```
 
 **Step 3: Test Services**
+
 ```bash
 # Test Ollama
 curl http://localhost:11434/api/tags
@@ -363,15 +374,17 @@ curl http://localhost:3000
 ```
 
 **Step 4: Setup Open WebUI**
-1. Open browser to http://localhost:3000
+
+1. Open browser to <http://localhost:3000>
 2. Create admin account (first user becomes admin)
 3. Go to Settings → Connections
-4. Verify Ollama connection: http://ollama:11434
+4. Verify Ollama connection: <http://ollama:11434>
 5. Select Gemma 3 12B model from dropdown
 
 **Step 5: Process Data and Build Knowledge Base**
 
 The RAG system will index all materials from the `./resources` folder:
+
 - **PDF Files**: RAG Intro.pdf, Databases for GenAI.pdf, Productized & Enterprise RAG.pdf, Architecture & Design Patterns.pdf
 - **Audio/Video Files**: MP4 lecture recordings that will be transcribed
 
@@ -392,6 +405,7 @@ python src/embeddings/embedding_generator.py --input ./data/processed/chunks
 **Note**: This data preparation step should be completed during application setup before the RAG system can answer questions.
 
 **Step 6: Start Flask API (if not using container)**
+
 ```bash
 # Development mode
 python api/app.py
@@ -401,6 +415,7 @@ gunicorn -w 4 -b 0.0.0.0:5000 api.app:app
 ```
 
 **Step 7: Test the Complete System**
+
 ```bash
 # Test RAG query via API
 curl -X POST http://localhost:5000/api/rag/query \
@@ -414,7 +429,8 @@ curl -X POST http://localhost:5000/api/chat \
 ```
 
 **Step 8: Use Open WebUI**
-1. Go to http://localhost:3000
+
+1. Go to <http://localhost:3000>
 2. Start a new chat
 3. Ask questions about your knowledge base
 4. The system will use RAG to retrieve context and generate answers
@@ -422,18 +438,21 @@ curl -X POST http://localhost:5000/api/chat \
 ### 1.5 Resource Requirements
 
 **Minimum Configuration (Laptop/Desktop):**
+
 - RAM: 14GB (8GB Gemma 3 12B Q4, 2GB Whisper, 2GB ChromaDB, 2GB Open WebUI + Flask)
 - Storage: 20GB (models + data + containers)
 - CPU: 4+ cores (CPU-only deployment)
 - OS: Windows, Linux, or macOS
 
 **Recommended Configuration (Laptop/Desktop):**
+
 - RAM: 20GB+
 - Storage: 30GB+
 - CPU: 8+ cores
 - OS: Windows, Linux, or macOS
 
 **Raspberry Pi 5 Configuration:**
+
 - Model: Raspberry Pi 5 (8GB RAM)
 - AI HAT+: Hailo-8L (26 TOPS NPU)
 - Storage: 64GB+ microSD or NVMe SSD (recommended)
@@ -443,6 +462,7 @@ curl -X POST http://localhost:5000/api/chat \
 - See `./PI5AI.md` for detailed Raspberry Pi 5 requirements
 
 **Port Allocation:**
+
 - 3000: Open WebUI (Web Interface)
 - 5000: Flask API (REST endpoints)
 - 8000: ChromaDB (Vector database)
@@ -450,6 +470,7 @@ curl -X POST http://localhost:5000/api/chat \
 - 11434: Ollama (LLM and embeddings)
 
 **Lighter Alternative (for limited resources or Raspberry Pi 5):**
+
 ```bash
 # Use smaller models
 podman exec -it ollama ollama pull gemma3:2b-instruct-q4_K_M  # Only 1.6GB
@@ -463,16 +484,19 @@ OLLAMA_MODEL=gemma3:2b-instruct-q4_K_M
 
 **Network Configuration:**
 All services communicate via Docker/Podman internal network. External access:
-- Open WebUI: http://localhost:3000 (Web UI)
-- Flask API: http://localhost:5000 (REST API)
-- API Docs: http://localhost:5000/apidocs (Swagger UI)
+
+- Open WebUI: <http://localhost:3000> (Web UI)
+- Flask API: <http://localhost:5000> (REST API)
+- API Docs: <http://localhost:5000/apidocs> (Swagger UI)
 
 ## Phase 2: Data Preparation & Contextualization
 
 ### 2.1 PDF Text Extraction
+
 **File**: `src/data_processing/pdf_loader.py`
 
 Steps:
+
 1. Implement PDF loader using `pdfplumber` (more reliable than PyPDF2)
 2. Extract text with layout preservation
 3. Handle tables, images, and special formatting
@@ -480,11 +504,13 @@ Steps:
 5. Save processed text to `data/processed/pdf_text.txt`
 
 Key considerations:
+
 - Handle multi-column layouts
 - Preserve section headers
 - Extract metadata (page numbers, sections)
 
 ### 2.2 Audio Transcription
+
 **File**: `src/data_processing/audio_transcriber.py`
 
 Implementation using containerized Whisper service:
@@ -498,7 +524,7 @@ from typing import Dict, List
 class WhisperTranscriber:
     def __init__(self, base_url: str = "http://localhost:9000"):
         self.base_url = base_url
-        
+
     def transcribe_audio(self, audio_path: str) -> Dict:
         """Transcribe audio file using Whisper service"""
         with open(audio_path, 'rb') as audio_file:
@@ -510,7 +536,7 @@ class WhisperTranscriber:
             )
             response.raise_for_status()
             return response.json()
-    
+
     def transcribe_with_timestamps(self, audio_path: str) -> List[Dict]:
         """Transcribe with word-level timestamps"""
         with open(audio_path, 'rb') as audio_file:
@@ -526,38 +552,38 @@ class WhisperTranscriber:
             )
             response.raise_for_status()
             return response.json()
-    
+
     def process_audio_files(self, audio_dir: str, output_dir: str):
         """Process all audio files in directory"""
         audio_dir = Path(audio_dir)
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         audio_extensions = ['.mp3', '.mp4', '.wav', '.m4a']
         audio_files = [
-            f for f in audio_dir.iterdir() 
+            f for f in audio_dir.iterdir()
             if f.suffix.lower() in audio_extensions
         ]
-        
+
         for audio_file in audio_files:
             print(f"Transcribing: {audio_file.name}")
-            
+
             try:
                 result = self.transcribe_with_timestamps(str(audio_file))
-                
+
                 # Save full JSON result
                 json_output = output_dir / f"{audio_file.stem}_full.json"
                 with open(json_output, 'w', encoding='utf-8') as f:
                     import json
                     json.dump(result, f, indent=2, ensure_ascii=False)
-                
+
                 # Save clean text
                 text_output = output_dir / f"{audio_file.stem}.txt"
                 with open(text_output, 'w', encoding='utf-8') as f:
                     f.write(result.get('text', ''))
-                
+
                 print(f"✓ Saved to: {text_output}")
-                
+
             except Exception as e:
                 print(f"✗ Error transcribing {audio_file.name}: {e}")
 
@@ -571,6 +597,7 @@ if __name__ == "__main__":
 ```
 
 Steps:
+
 1. Load audio files (support MP4, MP3, WAV, M4A)
 2. Send to containerized Whisper service via HTTP
 3. Receive transcription with timestamps
@@ -581,6 +608,7 @@ Steps:
 5. Save transcriptions to `data/processed/audio_transcripts/`
 
 Whisper Model Options (configure in docker-compose.yml):
+
 - **tiny**: Fastest, lowest accuracy (~1GB RAM)
 - **base**: Good balance (~1GB RAM) - **Recommended**
 - **small**: Better accuracy (~2GB RAM)
@@ -588,6 +616,7 @@ Whisper Model Options (configure in docker-compose.yml):
 - **large**: Best accuracy (~10GB RAM)
 
 ### 2.3 Text Chunking Strategy
+
 **File**: `src/data_processing/text_chunker.py`
 
 Implement multiple chunking strategies:
@@ -606,6 +635,7 @@ Implement multiple chunking strategies:
    - Ensure chunks don't break mid-sentence
 
 Metadata to preserve:
+
 - Source (PDF page, audio timestamp)
 - Section/topic
 - Chunk ID
@@ -614,6 +644,7 @@ Metadata to preserve:
 ## Phase 3: RAG Pipeline Design
 
 ### 3.1 Embedding Generation
+
 **File**: `src/embeddings/embedding_generator.py`
 
 Implementation using Ollama embeddings:
@@ -628,7 +659,7 @@ class OllamaEmbeddings:
         self.base_url = base_url
         self.model = model
         self.dimension = 768  # nomic-embed-text dimension
-    
+
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for multiple documents"""
         embeddings = []
@@ -636,11 +667,11 @@ class OllamaEmbeddings:
             embedding = self._generate_embedding(text)
             embeddings.append(embedding)
         return embeddings
-    
+
     def embed_query(self, text: str) -> List[float]:
         """Generate embedding for a single query"""
         return self._generate_embedding(text)
-    
+
     def _generate_embedding(self, text: str) -> List[float]:
         """Internal method to generate embedding"""
         response = requests.post(
@@ -652,7 +683,7 @@ class OllamaEmbeddings:
         )
         response.raise_for_status()
         return response.json()["embedding"]
-    
+
     def embed_batch(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
         """Generate embeddings in batches for efficiency"""
         embeddings = []
@@ -671,6 +702,7 @@ embeddings_generator = OllamaEmbeddings(
 ```
 
 Steps:
+
 1. Use Ollama's embedding API with `nomic-embed-text` model
    - Optimized for RAG and semantic search
    - 768-dimensional embeddings
@@ -681,11 +713,13 @@ Steps:
 4. Implement batch processing for efficiency
 
 Alternative Embedding Models (via Ollama):
+
 - **nomic-embed-text**: Best for RAG (768d, ~274MB) - **Recommended**
 - **mxbai-embed-large**: High quality (1024d, ~670MB)
 - **all-minilm**: Lightweight (384d, ~120MB)
 
 ### 3.2 Vector Database Setup
+
 **File**: `src/embeddings/vector_store.py`
 
 **ChromaDB Implementation (Containerized)**
@@ -709,13 +743,13 @@ class ChromaVectorStore:
             port=port,
             settings=Settings(anonymized_telemetry=False)
         )
-        
+
         # Create or get collection
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
             metadata={"hnsw:space": "cosine"}
         )
-    
+
     def add_documents(
         self,
         documents: List[str],
@@ -726,7 +760,7 @@ class ChromaVectorStore:
         """Add documents with embeddings to the vector store"""
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
-        
+
         self.collection.add(
             documents=documents,
             embeddings=embeddings,
@@ -734,7 +768,7 @@ class ChromaVectorStore:
             ids=ids
         )
         print(f"Added {len(documents)} documents to vector store")
-    
+
     def similarity_search(
         self,
         query_embedding: List[float],
@@ -748,7 +782,7 @@ class ChromaVectorStore:
             where=filter_dict
         )
         return results
-    
+
     def similarity_search_with_score(
         self,
         query_embedding: List[float],
@@ -760,7 +794,7 @@ class ChromaVectorStore:
             query_embeddings=[query_embedding],
             n_results=top_k
         )
-        
+
         # Filter by similarity threshold
         filtered_results = []
         for i, distance in enumerate(results['distances'][0]):
@@ -772,9 +806,9 @@ class ChromaVectorStore:
                     'similarity': similarity,
                     'id': results['ids'][0][i]
                 })
-        
+
         return filtered_results
-    
+
     def get_collection_stats(self) -> Dict:
         """Get statistics about the collection"""
         return {
@@ -792,6 +826,7 @@ vector_store = ChromaVectorStore(
 ```
 
 Features implemented:
+
 - Metadata filtering
 - Similarity threshold
 - Top-k retrieval
@@ -799,6 +834,7 @@ Features implemented:
 - Persistent storage (via container volume)
 
 ### 3.3 Retrieval System
+
 **File**: `src/retrieval/retriever.py`
 
 Implement retrieval strategies:
@@ -820,6 +856,7 @@ Implement retrieval strategies:
 ## Phase 4: LLM Integration
 
 ### 4.1 LLM Client
+
 **File**: `src/llm/llm_client.py`
 
 Implement Ollama client for Gemma 3 12B:
@@ -837,7 +874,7 @@ class OllamaClient:
     ):
         self.base_url = base_url
         self.model = model
-    
+
     def generate(
         self,
         prompt: str,
@@ -861,12 +898,12 @@ class OllamaClient:
             }
         )
         response.raise_for_status()
-        
+
         if stream:
             return self._handle_stream(response)
         else:
             return response.json()["response"]
-    
+
     def chat(
         self,
         messages: List[Dict[str, str]],
@@ -888,7 +925,7 @@ class OllamaClient:
         )
         response.raise_for_status()
         return response.json()["message"]["content"]
-    
+
     def _handle_stream(self, response):
         """Handle streaming responses"""
         full_response = ""
@@ -900,7 +937,7 @@ class OllamaClient:
                     print(chunk["response"], end="", flush=True)
         print()  # New line after streaming
         return full_response
-    
+
     def test_connection(self) -> bool:
         """Test if Ollama is accessible"""
         try:
@@ -923,6 +960,7 @@ else:
 ```
 
 **Why Gemma 3 over Gemma 2:**
+
 - **Multimodal**: Processes both text and images (future-proof for document analysis)
 - **Extended Context**: 128K tokens vs 8K (better for long documents)
 - **Better Reasoning**: Improved performance on complex queries
@@ -930,6 +968,7 @@ else:
 - **Same Resource Requirements**: Similar memory footprint with quantization
 
 Benefits of Ollama over LM Studio:
+
 - Container-friendly (no GUI)
 - OpenAI-compatible API
 - Easy model management
@@ -937,11 +976,13 @@ Benefits of Ollama over LM Studio:
 - Works seamlessly with Podman/Docker
 
 ### 4.2 Prompt Templates
+
 **File**: `src/llm/prompt_templates.py`
 
 Create templates for:
 
 1. **RAG Query Template**:
+
 ```
 Context: {retrieved_chunks}
 
@@ -952,7 +993,8 @@ Instructions: Answer based on the provided context. If the answer isn't in the c
 Answer:
 ```
 
-2. **Reasoning Template**:
+1. **Reasoning Template**:
+
 ```
 Task: {task_description}
 
@@ -967,7 +1009,8 @@ Think step-by-step:
 Reasoning:
 ```
 
-3. **Reflection Template**:
+1. **Reflection Template**:
+
 ```
 Generated Answer: {answer}
 
@@ -985,9 +1028,11 @@ Reflection:
 ## Phase 5: Agentic Components
 
 ### 5.1 Reasoning Engine
+
 **File**: `src/agent/reasoning_engine.py`
 
 Implement:
+
 1. **Query Analysis**:
    - Understand user intent
    - Identify required information
@@ -1004,11 +1049,13 @@ Implement:
    - Evaluate results
 
 ### 5.2 Tool Manager
+
 **File**: `src/agent/tool_manager.py`
 
 Implement tool-calling system:
 
 **Available Tools**:
+
 1. `search_knowledge_base(query)` - RAG retrieval
 2. `calculate(expression)` - Math operations
 3. `summarize_section(section_name)` - Summarize specific content
@@ -1016,21 +1063,23 @@ Implement tool-calling system:
 5. `get_examples(concept)` - Find examples from knowledge base
 
 Tool execution flow:
+
 ```python
 class ToolManager:
     def register_tool(self, name, function, description):
         # Register available tools
-        
+
     def execute_tool(self, tool_name, **kwargs):
         # Execute tool with error handling
         # Log execution
         # Return results
-        
+
     def get_tool_descriptions(self):
         # Return tool descriptions for LLM
 ```
 
 ### 5.3 Reflection Module
+
 **File**: `src/agent/reflection_module.py`
 
 Implement self-reflection:
@@ -1059,6 +1108,7 @@ Implement self-reflection:
 ## Phase 6: Evaluation System
 
 ### 6.1 Evaluation Metrics
+
 **File**: `src/evaluation/evaluator.py`
 
 Implement metrics:
@@ -1085,9 +1135,11 @@ Implement metrics:
    - Reflection quality
 
 ### 6.2 Test Suite
+
 **File**: `tests/test_questions.py`
 
 Create test questions:
+
 ```python
 TEST_QUESTIONS = [
     {
@@ -1112,6 +1164,7 @@ TEST_QUESTIONS = [
 ## Phase 7: Main Application
 
 ### 7.1 Flask API Backend
+
 **File**: `api/app.py`
 
 Create Flask application with REST API endpoints:
@@ -1163,56 +1216,56 @@ class RAGAgent:
         self.tool_manager = ToolManager()
         self.reflection_module = ReflectionModule(self.llm_client)
         self.evaluator = Evaluator()
-        
+
     def process_query(self, question: str, include_reasoning: bool = True):
         """Process a query through the RAG pipeline"""
         # 1. Analyze query
         analysis = self.reasoning_engine.analyze_query(question)
-        
+
         # 2. Retrieve context
         context = self.retriever.retrieve(question, top_k=5)
-        
+
         # 3. Determine if tools needed
         if analysis.get('requires_tools', False):
             tool_results = self.tool_manager.execute_tools(analysis['tools'])
             context.extend(tool_results)
-        
+
         # 4. Generate answer
         answer = self.llm_client.generate(
             prompt=self.create_prompt(question, context)
         )
-        
+
         # 5. Reflect on answer
         reflection = self.reflection_module.reflect(
             question, context, answer
         )
-        
+
         # 6. Self-correct if needed
         if reflection.get('confidence', 1.0) < 0.7:
             answer = self.self_correct(question, context, answer, reflection)
-        
+
         result = {
             "answer": answer,
             "confidence": reflection.get('confidence', 1.0),
             "sources": [c.get('metadata', {}) for c in context]
         }
-        
+
         if include_reasoning:
             result.update({
                 "reasoning": analysis,
                 "reflection": reflection,
                 "context_count": len(context)
             })
-        
+
         return result
-    
+
     def create_prompt(self, question: str, context: list) -> str:
         """Create prompt for LLM"""
         context_text = "\n\n".join([
             f"[Source {i+1}]: {c.get('document', '')}"
             for i, c in enumerate(context)
         ])
-        
+
         return f"""Context from knowledge base:
 {context_text}
 
@@ -1221,7 +1274,7 @@ Question: {question}
 Instructions: Answer the question based on the provided context. If the answer isn't in the context, say so. Cite sources when possible.
 
 Answer:"""
-    
+
     def self_correct(self, question, context, answer, reflection):
         """Self-correction mechanism"""
         # Implement self-correction logic
@@ -1277,17 +1330,17 @@ def chat():
     """
     try:
         data = request.get_json()
-        
+
         if not data or 'message' not in data:
             return jsonify({"error": "Missing 'message' in request"}), 400
-        
+
         message = data['message']
         include_reasoning = data.get('include_reasoning', False)
-        
+
         result = agent.process_query(message, include_reasoning)
-        
+
         return jsonify(result), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1321,14 +1374,14 @@ def rag_query():
         data = request.get_json()
         question = data.get('question')
         include_reasoning = data.get('include_reasoning', True)
-        
+
         if not question:
             return jsonify({"error": "Missing 'question' parameter"}), 400
-        
+
         result = agent.process_query(question, include_reasoning)
-        
+
         return jsonify(result), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1357,17 +1410,17 @@ def retrieve_context():
         data = request.get_json()
         query = data.get('query')
         top_k = data.get('top_k', 5)
-        
+
         if not query:
             return jsonify({"error": "Missing 'query' parameter"}), 400
-        
+
         context = agent.retriever.retrieve(query, top_k=top_k)
-        
+
         return jsonify({
             "context": context,
             "count": len(context)
         }), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1395,7 +1448,7 @@ def evaluate():
     try:
         data = request.get_json()
         test_questions = data.get('test_questions', [])
-        
+
         results = []
         for item in test_questions:
             question = item.get('question')
@@ -1405,12 +1458,12 @@ def evaluate():
                 "answer": result['answer'],
                 "confidence": result['confidence']
             })
-        
+
         return jsonify({
             "results": results,
             "total": len(results)
         }), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1440,6 +1493,7 @@ if __name__ == '__main__':
 **Open WebUI** provides a modern, ChatGPT-like interface for your RAG agent.
 
 **Features:**
+
 - Beautiful chat interface
 - Conversation history
 - Model selection
@@ -1448,26 +1502,28 @@ if __name__ == '__main__':
 - Mobile responsive
 
 **Access:**
-- Open WebUI: http://localhost:3000
-- Flask API: http://localhost:5000
-- API Docs: http://localhost:5000/apidocs
+
+- Open WebUI: <http://localhost:3000>
+- Flask API: <http://localhost:5000>
+- API Docs: <http://localhost:5000/apidocs>
 
 **Configuration:**
 
 1. **Connect Open WebUI to Ollama:**
-   - Open http://localhost:3000
+   - Open <http://localhost:3000>
    - Sign up (first user becomes admin)
    - Go to Settings → Connections
-   - Ollama URL should be: http://ollama:11434
+   - Ollama URL should be: <http://ollama:11434>
 
 2. **Add Custom RAG Endpoint:**
    Create `api/routes/openwebui_integration.py`:
+
    ```python
    from flask import Blueprint, request, jsonify, stream_with_context, Response
    import json
-   
+
    openwebui_bp = Blueprint('openwebui', __name__)
-   
+
    @openwebui_bp.route('/api/openwebui/chat', methods=['POST'])
    def openwebui_chat():
        """
@@ -1477,19 +1533,19 @@ if __name__ == '__main__':
            data = request.get_json()
            messages = data.get('messages', [])
            stream = data.get('stream', False)
-           
+
            # Get last user message
            user_message = next(
                (m['content'] for m in reversed(messages) if m['role'] == 'user'),
                None
            )
-           
+
            if not user_message:
                return jsonify({"error": "No user message found"}), 400
-           
+
            # Process through RAG agent
            result = agent.process_query(user_message, include_reasoning=False)
-           
+
            if stream:
                def generate():
                    # Simulate streaming
@@ -1503,7 +1559,7 @@ if __name__ == '__main__':
                            }]
                        }
                        yield f"data: {json.dumps(chunk)}\n\n"
-                   
+
                    # Final chunk
                    final_chunk = {
                        "choices": [{
@@ -1514,7 +1570,7 @@ if __name__ == '__main__':
                    }
                    yield f"data: {json.dumps(final_chunk)}\n\n"
                    yield "data: [DONE]\n\n"
-               
+
                return Response(
                    stream_with_context(generate()),
                    mimetype='text/event-stream'
@@ -1536,21 +1592,24 @@ if __name__ == '__main__':
                        "total_tokens": 0
                    }
                })
-           
+
        except Exception as e:
            return jsonify({"error": str(e)}), 500
    ```
 
 3. **Register Blueprint in app.py:**
+
    ```python
    from api.routes.openwebui_integration import openwebui_bp
    app.register_blueprint(openwebui_bp)
    ```
 
 ### 7.3 CLI Interface (Optional)
+
 **File**: `main.py`
 
 Create interactive CLI for testing:
+
 ```python
 import sys
 import os
@@ -1575,36 +1634,36 @@ class RAGAgentCLI:
         self.tool_manager = ToolManager()
         self.reflection_module = ReflectionModule(self.llm_client)
         print("✓ RAG Agent initialized\n")
-    
+
     def process_query(self, question: str):
         print(f"\n{'='*60}")
         print(f"Question: {question}")
         print(f"{'='*60}\n")
-        
+
         # Retrieve context
         print("🔍 Retrieving context...")
         context = self.retriever.retrieve(question, top_k=5)
         print(f"✓ Retrieved {len(context)} relevant chunks\n")
-        
+
         # Generate answer
         print("💭 Generating answer...")
         prompt = self.create_prompt(question, context)
         answer = self.llm_client.generate(prompt)
         print(f"\n📝 Answer:\n{answer}\n")
-        
+
         # Reflect
         print("🤔 Reflecting on answer...")
         reflection = self.reflection_module.reflect(question, context, answer)
         print(f"✓ Confidence: {reflection.get('confidence', 0):.2%}\n")
-        
+
         return answer
-    
+
     def create_prompt(self, question: str, context: list) -> str:
         context_text = "\n\n".join([
             f"[Source {i+1}]: {c.get('document', '')}"
             for i, c in enumerate(context)
         ])
-        
+
         return f"""Context from knowledge base:
 {context_text}
 
@@ -1613,24 +1672,24 @@ Question: {question}
 Instructions: Answer based on the provided context. If the answer isn't in the context, say so.
 
 Answer:"""
-    
+
     def run(self):
         print("AI-Agentic RAG System - CLI Mode")
         print("Type 'quit' to exit\n")
-        
+
         while True:
             try:
                 question = input("Question: ").strip()
-                
+
                 if question.lower() in ['quit', 'exit', 'q']:
                     print("Goodbye!")
                     break
-                
+
                 if not question:
                     continue
-                
+
                 self.process_query(question)
-                
+
             except KeyboardInterrupt:
                 print("\n\nGoodbye!")
                 break
@@ -1645,6 +1704,7 @@ if __name__ == "__main__":
 ## Phase 8: LinkedIn Post Generator
 
 ### 8.1 Post Generation Agent
+
 **File**: `src/agent/post_generator.py`
 
 Implement specialized agent for LinkedIn post:
@@ -1653,30 +1713,32 @@ Implement specialized agent for LinkedIn post:
 def generate_linkedin_post(agent_description, tech_stack, achievements):
     prompt = f"""
     Create a professional LinkedIn post about an AI agent I built.
-    
+
     Agent Description: {agent_description}
     Technology Stack: {tech_stack}
     Key Achievements: {achievements}
-    
+
     Context: This was built as part of the Ciklum AI Academy.
-    
+
     Requirements:
     - 5-7 sentences
     - Professional but engaging tone
     - Mention Ciklum AI Academy
     - Highlight technical aspects
     - Include relevant hashtags
-    
+
     Post:
     """
-    
+
     return llm_client.generate(prompt)
 ```
 
 ## Phase 9: Documentation
 
 ### 9.1 README.md
+
 Include:
+
 - Project overview
 - Installation instructions
 - Usage examples
@@ -1685,14 +1747,18 @@ Include:
 - Architecture overview
 
 ### 9.2 architecture.mmd
+
 Create Mermaid diagram showing:
+
 - Data flow
 - Component interactions
 - Agent decision process
 - Tool calling mechanism
 
 ### 9.3 Test Results Log
+
 Document:
+
 - Test questions
 - Generated answers
 - Evaluation metrics
@@ -1702,6 +1768,7 @@ Document:
 ## Phase 10: Demo Video
 
 ### 10.1 Video Content (5 minutes)
+
 1. **Introduction** (30s):
    - Project overview
    - Problem statement
@@ -1728,16 +1795,19 @@ Document:
 ## Implementation Timeline
 
 ### Week 1: Foundation
+
 - Day 1-2: Environment setup, data processing
 - Day 3-4: Embedding generation, vector store
 - Day 5-7: Basic RAG pipeline
 
 ### Week 2: Agentic Features
+
 - Day 8-10: Reasoning engine, tool manager
 - Day 11-12: Reflection module
 - Day 13-14: Integration and testing
 
 ### Week 3: Evaluation & Polish
+
 - Day 15-16: Evaluation system
 - Day 17-18: LinkedIn post generator
 - Day 19-20: Documentation, demo video
@@ -1774,7 +1844,7 @@ Document:
 
 ## Troubleshooting Guide
 
-### Common Issues:
+### Common Issues
 
 1. **PDF extraction fails**:
    - Try pdfplumber instead of PyPDF2
@@ -1838,6 +1908,7 @@ Document:
 ## Next Steps
 
 After completing the implementation:
+
 1. Run full test suite
 2. Generate evaluation report
 3. Create demo video
@@ -1848,27 +1919,31 @@ After completing the implementation:
 ## Resources
 
 ### Documentation
-- Ollama Documentation: https://ollama.ai/
-- Ollama Python Library: https://github.com/ollama/ollama-python
-- LangChain Documentation: https://python.langchain.com/
-- ChromaDB Docs: https://docs.trychroma.com/
-- Whisper ASR Webservice: https://github.com/ahmetoner/whisper-asr-webservice
-- RAGAS: https://docs.ragas.io/
-- Podman Compose: https://github.com/containers/podman-compose
+
+- Ollama Documentation: <https://ollama.ai/>
+- Ollama Python Library: <https://github.com/ollama/ollama-python>
+- LangChain Documentation: <https://python.langchain.com/>
+- ChromaDB Docs: <https://docs.trychroma.com/>
+- Whisper ASR Webservice: <https://github.com/ahmetoner/whisper-asr-webservice>
+- RAGAS: <https://docs.ragas.io/>
+- Podman Compose: <https://github.com/containers/podman-compose>
 
 ### Model Information
-- Gemma 3 Models: https://ollama.ai/library/gemma3
-- Nomic Embed Text: https://ollama.ai/library/nomic-embed-text
-- Ollama Model Library: https://ollama.ai/library
+
+- Gemma 3 Models: <https://ollama.ai/library/gemma3>
+- Nomic Embed Text: <https://ollama.ai/library/nomic-embed-text>
+- Ollama Model Library: <https://ollama.ai/library>
 
 ### Container Resources
-- Ollama Docker Image: https://hub.docker.com/r/ollama/ollama
-- ChromaDB Docker: https://hub.docker.com/r/chromadb/chroma
-- Whisper ASR Docker: https://hub.docker.com/r/onerahmet/openai-whisper-asr-webservice
+
+- Ollama Docker Image: <https://hub.docker.com/r/ollama/ollama>
+- ChromaDB Docker: <https://hub.docker.com/r/chromadb/chroma>
+- Whisper ASR Docker: <https://hub.docker.com/r/onerahmet/openai-whisper-asr-webservice>
 
 ### Useful Commands
 
 **Podman/Docker Management:**
+
 ```bash
 # Start all services
 podman-compose up -d
@@ -1890,6 +1965,7 @@ podman-compose down -v  # Remove volumes too
 ```
 
 **Ollama Management:**
+
 ```bash
 # List available models
 podman exec -it ollama ollama list
@@ -1908,6 +1984,7 @@ podman exec -it ollama ollama run gemma3:12b-instruct-q4_K_M "Hello!"
 ```
 
 **Debugging:**
+
 ```bash
 # Enter container shell
 podman exec -it [container_name] /bin/bash
@@ -1919,17 +1996,20 @@ podman inspect [container_name] | grep -A 10 Health
 podman inspect [container_name] | grep -A 20 Resources
 ```
 
-
 ## Deployment Options
 
 ### Option 1: Full Stack on Laptop/Desktop (Recommended for Development)
+
 All services containerized including the RAG application:
+
 ```bash
 podman-compose up -d
 ```
 
 ### Option 2: Hybrid Approach
+
 Services in containers, RAG app runs locally for development:
+
 ```bash
 # Start only infrastructure services
 podman-compose up -d ollama whisper chromadb
@@ -1941,6 +2021,7 @@ python main.py
 ### Option 3: Raspberry Pi 5 Deployment
 
 **Hardware Requirements:**
+
 - Raspberry Pi 5 (8GB RAM)
 - AI HAT+ with Hailo-8L NPU (26 TOPS)
 - 64GB+ microSD or NVMe SSD (recommended)
@@ -1950,6 +2031,7 @@ python main.py
 **Software Setup:**
 
 1. **Install Raspberry Pi OS (64-bit)**
+
 ```bash
 # Update system
 sudo apt update && sudo apt upgrade -y
@@ -1958,7 +2040,8 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y podman podman-compose
 ```
 
-2. **Install Hailo Software Stack**
+1. **Install Hailo Software Stack**
+
 ```bash
 # Install Hailo drivers and runtime
 # Follow official Hailo installation guide for Raspberry Pi 5
@@ -1968,7 +2051,8 @@ sudo apt install -y podman podman-compose
 ls /dev/hailo*  # Should show /dev/hailo0
 ```
 
-3. **Clone Repository and Configure**
+1. **Clone Repository and Configure**
+
 ```bash
 git clone <your-repo>
 cd capstone-project
@@ -1987,7 +2071,8 @@ WEBUI_SECRET_KEY=$(openssl rand -hex 32)
 EOF
 ```
 
-4. **Modify docker-compose.yml for ARM Architecture**
+1. **Modify docker-compose.yml for ARM Architecture**
+
 ```yaml
 # Use ARM-compatible images
 services:
@@ -2002,7 +2087,8 @@ services:
     # ... rest of config
 ```
 
-5. **Start Services**
+1. **Start Services**
+
 ```bash
 # Pull ARM-compatible images
 podman-compose pull
@@ -2014,7 +2100,8 @@ podman-compose up -d
 podman-compose logs -f
 ```
 
-6. **Pull Optimized Models for Raspberry Pi 5**
+1. **Pull Optimized Models for Raspberry Pi 5**
+
 ```bash
 # Pull Gemma 3 2B (optimized for edge devices)
 podman exec -it ollama ollama pull gemma3:2b-instruct-q4_K_M
@@ -2026,7 +2113,8 @@ podman exec -it ollama ollama pull nomic-embed-text
 podman exec -it ollama ollama list
 ```
 
-7. **Process Data and Build Knowledge Base**
+1. **Process Data and Build Knowledge Base**
+
 ```bash
 # Process resources folder
 python src/data_processing/pdf_loader.py --input ./resources
@@ -2035,12 +2123,14 @@ python src/data_processing/text_chunker.py
 python src/embeddings/embedding_generator.py
 ```
 
-8. **Access the System**
-- Open WebUI: http://raspberrypi.local:3000 (or http://<pi-ip>:3000)
-- Flask API: http://raspberrypi.local:5000
-- API Docs: http://raspberrypi.local:5000/apidocs
+1. **Access the System**
+
+- Open WebUI: <http://raspberrypi.local:3000> (or http://<pi-ip>:3000)
+- Flask API: <http://raspberrypi.local:5000>
+- API Docs: <http://raspberrypi.local:5000/apidocs>
 
 **Raspberry Pi 5 Performance Expectations:**
+
 - **Gemma 3 2B Inference**: 5-15 tokens/second (CPU + NPU acceleration)
 - **Whisper Tiny**: Real-time transcription for short audio clips
 - **Memory Usage**: ~6GB under load (leaves 2GB for OS)
@@ -2067,6 +2157,7 @@ python src/embeddings/embedding_generator.py
    - Process audio in smaller segments
 
 5. **Monitor Thermals**
+
 ```bash
 # Check CPU temperature
 vcgencmd measure_temp
@@ -2075,7 +2166,8 @@ vcgencmd measure_temp
 htop
 ```
 
-6. **Persistent Storage Configuration**
+1. **Persistent Storage Configuration**
+
 ```bash
 # Mount NVMe SSD (if using)
 sudo mkdir -p /mnt/nvme
@@ -2087,12 +2179,14 @@ ln -s /mnt/nvme/data ./data
 ```
 
 **Raspberry Pi 5 Limitations:**
+
 - Slower inference than desktop (5-15 tok/s vs 30-50 tok/s)
 - Limited to smaller models (2B-7B range)
 - Cannot run multiple large models simultaneously
 - Requires active cooling for sustained workloads
 
 **When to Use Raspberry Pi 5:**
+
 - Edge deployment scenarios
 - Portable AI assistant
 - Low-power always-on system
@@ -2100,6 +2194,7 @@ ln -s /mnt/nvme/data ./data
 - Cost-effective production prototype
 
 **When to Use Laptop/Desktop:**
+
 - Development and testing
 - Larger models (12B+)
 - Faster iteration cycles
@@ -2109,7 +2204,9 @@ ln -s /mnt/nvme/data ./data
 For complete Raspberry Pi 5 hardware specifications and setup details, see `./PI5AI.md`.
 
 ### Option 4: Cloud Deployment
+
 Deploy to cloud platforms:
+
 - **AWS**: ECS/Fargate with ECR
 - **Azure**: Container Instances
 - **GCP**: Cloud Run
@@ -2118,7 +2215,9 @@ Deploy to cloud platforms:
 ## Performance Optimization
 
 ### CPU Optimization
+
 For CPU-only deployment (laptop, desktop, or Raspberry Pi 5):
+
 1. Use quantized models (Q4_K_M or Q4_0)
 2. Reduce batch sizes
 3. Optimize chunk sizes for faster retrieval
@@ -2126,12 +2225,15 @@ For CPU-only deployment (laptop, desktop, or Raspberry Pi 5):
 5. Enable multi-threading where possible
 
 **Model Selection by Platform:**
+
 - **Laptop/Desktop (16GB+ RAM)**: gemma3:12b-instruct-q4_K_M
 - **Laptop/Desktop (8-16GB RAM)**: gemma3:4b-instruct-q4_K_M
 - **Raspberry Pi 5 (8GB RAM)**: gemma3:2b-instruct-q4_K_M
 
 ### Memory Management
+
 Adjust container memory limits based on your hardware:
+
 ```yaml
 services:
   ollama:
@@ -2146,6 +2248,7 @@ services:
 ```
 
 ### Storage Optimization
+
 - **Laptop/Desktop**: SSD recommended
 - **Raspberry Pi 5**: NVMe SSD strongly recommended over microSD
 - Use volume mounts for persistent data
@@ -2154,6 +2257,7 @@ services:
 ## Production Considerations
 
 ### Security
+
 - Use environment variables for sensitive config
 - Implement API authentication
 - Use private container registry
@@ -2161,6 +2265,7 @@ services:
 - Regular security updates
 
 ### Monitoring
+
 - Add health checks to docker-compose.yml
 - Implement logging (ELK stack, Loki)
 - Monitor resource usage
@@ -2168,12 +2273,14 @@ services:
 - Set up alerts
 
 ### Scaling
+
 - Use Kubernetes for orchestration
 - Implement load balancing
 - Add caching layer (Redis)
 - Consider model serving frameworks (vLLM, TGI)
 
 ### Backup & Recovery
+
 - Regular backups of ChromaDB volume
 - Version control for models
 - Document restore procedures
@@ -2182,10 +2289,12 @@ services:
 ## Cost Optimization
 
 ### Model Selection
+
 - **Development**: gemma3:2b-instruct-q4_K_M (1.6GB)
 - **Production**: gemma3:12b-instruct-q4_K_M (7GB)
 
 ### Resource Allocation
+
 - Start with minimal resources
 - Monitor actual usage
 - Scale based on demand
@@ -2194,11 +2303,13 @@ services:
 ## Quick Start Guide
 
 ### Prerequisites
+
 - Podman or Docker installed
 - 14GB+ RAM available
 - 25GB+ disk space
 
 ### 5-Minute Setup (Laptop/Desktop)
+
 ```bash
 # 1. Clone repository
 git clone <your-repo>
@@ -2240,6 +2351,7 @@ python src/embeddings/embedding_generator.py
 ```
 
 ### Quick Setup for Raspberry Pi 5
+
 ```bash
 # 1. Clone repository
 git clone <your-repo>
@@ -2278,6 +2390,7 @@ python src/embeddings/embedding_generator.py
 ```
 
 ### Verification
+
 ```bash
 # Check all services are running
 podman-compose ps
@@ -2311,7 +2424,7 @@ curl -X POST http://localhost:5000/api/chat \
 ### Using Open WebUI
 
 1. **First Time Setup:**
-   - Navigate to http://localhost:3000
+   - Navigate to <http://localhost:3000>
    - Create an account (first user becomes admin)
    - Login with your credentials
 
@@ -2397,6 +2510,7 @@ If you have existing LM Studio setup:
 
 **API Compatibility:**
 Both use OpenAI-compatible APIs, so migration is straightforward:
+
 ```python
 # LM Studio
 base_url = "http://localhost:1234/v1"
@@ -2431,6 +2545,7 @@ The containerized architecture makes it easy to switch between laptop and Raspbe
 4. **Portable data**: Copy `./data` and `./resources` folders
 
 **Quick Switch:**
+
 ```bash
 # On Laptop
 OLLAMA_MODEL=gemma3:12b-instruct-q4_K_M
@@ -2444,24 +2559,28 @@ OLLAMA_MODEL=gemma3:2b-instruct-q4_K_M
 All RAG knowledge base materials are located in `./resources/`:
 
 **PDF Documents:**
+
 - `RAG Intro.pdf` - Introduction to RAG concepts
 - `Databases for GenAI.pdf` - Database considerations for GenAI
 - `Productized & Enterprise RAG.pdf` - Production RAG systems
 - `Architecture & Design Patterns.pdf` - RAG architecture patterns
 
 **Video/Audio Files:**
+
 - `1 part. RAG Intro.mp4` - RAG introduction lecture
 - `1st Part_Productized Enterprise RAG.mp4` - Enterprise RAG lecture
 - `2 part Databases for GenAI.mp4` - Databases lecture
 - `2nd Part_Architecture & Design Patterns.mp4` - Architecture lecture
 
 **Processing Pipeline:**
+
 1. PDFs → Text extraction → Chunking → Embeddings
 2. Audio/Video → Whisper transcription → Chunking → Embeddings
 3. All embeddings → ChromaDB vector store
 4. Ready for RAG queries
 
 **Data Preparation Checklist:**
+
 - [ ] Place all materials in `./resources/` folder
 - [ ] Run PDF loader on all PDF files
 - [ ] Run audio transcriber on all MP4 files

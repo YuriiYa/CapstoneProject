@@ -17,11 +17,23 @@ class ChromaVectorStore:
         collection_name = collection_name or os.getenv("CHROMA_COLLECTION_NAME", "rag_knowledge_base")
         
         # Connect to containerized ChromaDB
-        self.client = chromadb.HttpClient(
-            host=host,
-            port=port,
-            settings=Settings(anonymized_telemetry=False)
-        )
+        # Use v2 API compatible settings
+        try:
+            self.client = chromadb.HttpClient(
+                host=host,
+                port=port,
+                settings=Settings(
+                    anonymized_telemetry=False,
+                    allow_reset=True
+                )
+            )
+        except Exception as e:
+            print(f"Warning: Could not connect to ChromaDB with v2 settings: {e}")
+            # Fallback to basic connection
+            self.client = chromadb.HttpClient(
+                host=host,
+                port=port
+            )
         
         # Create or get collection
         self.collection = self.client.get_or_create_collection(

@@ -2,18 +2,18 @@
 Flask API Backend for the AI-Agentic RAG System.
 """
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
 import os
 import sys
+from pathlib import Path
+
+# Add project root to Python path because
+# when running locally, Python needs to know where to find the src module
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 from src.embeddings.vector_store import ChromaVectorStore
 from src.embeddings.embedding_generator import OllamaEmbeddings
 from src.retrieval.retriever import Retriever
@@ -23,11 +23,27 @@ from src.agent.reasoning_engine import ReasoningEngine
 from src.agent.tool_manager import ToolManager
 from src.agent.reflection_module import ReflectionModule
 from src.evaluation.evaluator import Evaluator
+from src.config.constants import (
+    DEFAULT_OLLAMA_BASE_URL,
+    DEFAULT_OLLAMA_EMBEDDING_MODEL,
+    DEFAULT_OLLAMA_MODEL,
+    DEFAULT_CHROMA_HOST,
+    DEFAULT_CHROMA_PORT,
+    DEFAULT_CHROMA_COLLECTION_NAME,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_TOP_K,
+    DEFAULT_INCLUDE_REASONING,
+    DEFAULT_CHAT_INCLUDE_REASONING,
+    DEFAULT_CONFIDENCE,
+    DEFAULT_FLASK_PORT,
+    DEFAULT_ANSWER_ERROR_MESSAGE,
+)
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for Open WebUI
 
-# Initialize RAG Agent components
+# Initialize
 class RAGAgent:
     """RAG Agent with all components."""
 
@@ -37,21 +53,21 @@ class RAGAgent:
 
         # Initialize components
         self.vector_store = ChromaVectorStore(
-            host=os.getenv("CHROMA_HOST", "localhost"),
-            port=int(os.getenv("CHROMA_PORT", 8000)),
-            collection_name=os.getenv("CHROMA_COLLECTION_NAME", "rag_knowledge_base")
+            host=os.getenv("CHROMA_HOST", DEFAULT_CHROMA_HOST),
+            port=int(os.getenv("CHROMA_PORT", DEFAULT_CHROMA_PORT)),
+            collection_name=os.getenv("CHROMA_COLLECTION_NAME", DEFAULT_CHROMA_COLLECTION_NAME)
         )
 
         self.embeddings = OllamaEmbeddings(
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            model=os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
+            base_url=os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
+            model=os.getenv("OLLAMA_EMBEDDING_MODEL", DEFAULT_OLLAMA_EMBEDDING_MODEL)
         )
 
         self.retriever = Retriever(self.vector_store, self.embeddings)
 
         self.llm_client = OllamaClient(
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            model=os.getenv("OLLAMA_MODEL", "kwangsuklee/gemma-3-12b-it-Q4_K_M:latest")
+            base_url=os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
+            model=os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
         )
 
         self.reasoning_engine = ReasoningEngine(self.llm_client)
@@ -61,7 +77,7 @@ class RAGAgent:
 
         print("✓ RAG Agent initialized")
 
-    def process_query(self, question: str, include_reasoning: bool = True):
+    def process_query(self, question: str, include_reasoning: bool = DEFAULT_INCLUDE_REASONING):
         """
         Process a query through the RAG pipeline.
 
@@ -77,7 +93,7 @@ class RAGAgent:
             analysis = self.reasoning_engine.analyze_query(question)
 
             # 2. Retrieve context
-            context = self.retriever.retrieve(question, top_k=5)
+            context = self.retriever.retrieve(question, top_k=DEFAULT_TOP_K)
 
             # 3. Determine if tools needed
             tool_results = []
@@ -93,8 +109,8 @@ class RAGAgent:
             prompt = PromptTemplates.rag_query_template(context_text, question)
             answer = self.llm_client.generate(
                 prompt,
-                max_tokens=int(os.getenv("MAX_TOKENS", 500)),
-                temperature=float(os.getenv("TEMPERATURE", 0.7))
+                max_tokens=int(os.getenv("MAX_TOKENS", DEFAULT_MAX_TOKENS)),
+                temperature=float(os.getenv("TEMPERATURE", DEFAULT_TEMPERATURE))
             )
 
             # 5. Reflect on answer
@@ -109,7 +125,7 @@ class RAGAgent:
             # Build response
             result = {
                 "answer": answer,
-                "confidence": reflection.get('confidence', 0.0),
+                "confidence": reflection.get('confidence', DEFAULT_CONFIDENCE),
                 "sources": [
                     {
                         "source": c.get('metadata', {}).get('source', 'Unknown'),
@@ -139,8 +155,8 @@ class RAGAgent:
         except Exception as e:
             return {
                 "error": str(e),
-                "answer": "An error occurred while processing your question.",
-                "confidence": 0.0
+                "answer": DEFAULT_ANSWER_ERROR_MESSAGE,
+                "confidence": DEFAULT_CONFIDENCE
             }
 
     def self_correct(self, question, context, answer, reflection):
@@ -169,7 +185,7 @@ class RAGAgent:
         )
 
         try:
-            corrected_answer = self.llm_client.generate(prompt, max_tokens=500)
+            corrected_answer = self.llm_client.generate(prompt, max_tokens=DEFAULT_MAX_TOKENS)
             return corrected_answer
         except:
             return answer  # Return original if correction fails
@@ -212,7 +228,7 @@ def chat():
             return jsonify({"error": "Missing 'message' in request"}), 400
 
         message = data['message']
-        include_reasoning = data.get('include_reasoning', False)
+        include_reasoning = data.get('include_reasoning', DEFAULT_CHAT_INCLUDE_REASONING)
 
         result = agent.process_query(message, include_reasoning)
 
@@ -228,7 +244,7 @@ def rag_query():
     try:
         data = request.get_json()
         question = data.get('question')
-        include_reasoning = data.get('include_reasoning', True)
+        include_reasoning = data.get('include_reasoning', DEFAULT_INCLUDE_REASONING)
 
         if not question:
             return jsonify({"error": "Missing 'question' parameter"}), 400
@@ -247,7 +263,7 @@ def retrieve_context():
     try:
         data = request.get_json()
         query = data.get('query')
-        top_k = data.get('top_k', 5)
+        top_k = data.get('top_k', DEFAULT_TOP_K)
 
         if not query:
             return jsonify({"error": "Missing 'query' parameter"}), 400
@@ -277,7 +293,7 @@ def evaluate():
             results.append({
                 "question": question,
                 "answer": result.get('answer'),
-                "confidence": result.get('confidence', 0.0)
+                "confidence": result.get('confidence', DEFAULT_CONFIDENCE)
             })
 
         return jsonify({
@@ -381,7 +397,7 @@ def index():
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('FLASK_PORT', 5000))
+    port = int(os.getenv('FLASK_PORT', DEFAULT_FLASK_PORT))
     debug = os.getenv('FLASK_ENV', 'production') == 'development'
 
     print(f"\n{'='*60}")

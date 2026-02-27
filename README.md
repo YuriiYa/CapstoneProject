@@ -117,6 +117,8 @@ docker exec ollama ollama list
 
 ```bash
 pip install -r requirements.txt
+# or in case previous fails
+pip install --no-cache-dir -r requirements.txt
 ```
 
 #### 4. Process Data
@@ -481,6 +483,21 @@ docker exec ollama ollama list
 docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
 ```
 
+### Crun error while composing flask api
+
+Error:
+`Error response from daemon: crun: creating cgroup directory /sys/fs/cgroup/systemd... No such file or directory: OCI runtime attempted to invoke a command that was not found`
+
+Disable Bake/Buildx for this project (quickest)
+
+```bash
+podman compose -f docker-compose.nohealth.yml up -d
+
+$env:COMPOSE_DOCKER_CLI_BUILD=0
+$env:DOCKER_BUILDKIT=0
+podman compose up
+```
+
 ### Memory Issues
 
 - Use smaller model: `gemma3:2b-instruct-q4_K_M`
@@ -530,9 +547,6 @@ If videos return empty transcriptions:
 - [IMPLEMENTATION.md](./IMPLEMENTATION.md) - Detailed implementation guide
 - [PI5AI.md](./PI5AI.md) - Raspberry Pi 5 requirements
 - [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) - Complete Docker guide
-- [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) - Windows-specific instructions
-- [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Common issues
-- [TRANSCRIPTION_SUCCESS.md](./TRANSCRIPTION_SUCCESS.md) - Audio transcription solution
 
 ### External Resources
 
@@ -597,5 +611,4 @@ chroma browse rag_knowledge_base --host http://localhost:8000
 **Quick Links:**
 
 - [Docker Deployment Guide](./DOCKER_DEPLOYMENT.md)
-- [Troubleshooting](./TROUBLESHOOTING.md)
 - [Implementation Details](./IMPLEMENTATION.md)

@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
+ENV PIP_DEFAULT_TIMEOUT=120 PIP_RETRIES=5
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code

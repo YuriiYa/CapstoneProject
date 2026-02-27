@@ -11,7 +11,7 @@ services:
       - OLLAMA_HOST=0.0.0.0
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -55,7 +55,7 @@ services:
 
   # Flask API Backend for RAG Agent
   flask-api:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.flask
     container_name: flask-api
@@ -99,6 +99,8 @@ services:
     depends_on:
       ollama:
         condition: service_healthy
+      flask-api:
+        condition: service_healthy
     ports:
       - "3000:8080"
     volumes:
@@ -107,7 +109,8 @@ services:
       - OLLAMA_BASE_URL=http://ollama:11434
       - WEBUI_SECRET_KEY=your-secret-key-change-this
       - ENABLE_RAG_WEB_SEARCH=false
-      - ENABLE_RAG_LOCAL_WEB_FETCH=false
+      - OPENAI_API_BASE_URL=http://flask-api:5000/api # Point to your RAG API
+      - OPENAI_API_KEY=dummy-key # Required but can be dummy
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

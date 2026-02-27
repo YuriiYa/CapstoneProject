@@ -30,55 +30,55 @@ CORS(app)  # Enable CORS for Open WebUI
 # Initialize RAG Agent components
 class RAGAgent:
     """RAG Agent with all components."""
-    
+
     def __init__(self):
         """Initialize all components."""
         print("Initializing RAG Agent...")
-        
+
         # Initialize components
         self.vector_store = ChromaVectorStore(
             host=os.getenv("CHROMA_HOST", "localhost"),
             port=int(os.getenv("CHROMA_PORT", 8000)),
             collection_name=os.getenv("CHROMA_COLLECTION_NAME", "rag_knowledge_base")
         )
-        
+
         self.embeddings = OllamaEmbeddings(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
             model=os.getenv("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
         )
-        
+
         self.retriever = Retriever(self.vector_store, self.embeddings)
-        
+
         self.llm_client = OllamaClient(
             base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
             model=os.getenv("OLLAMA_MODEL", "kwangsuklee/gemma-3-12b-it-Q4_K_M:latest")
         )
-        
+
         self.reasoning_engine = ReasoningEngine(self.llm_client)
         self.tool_manager = ToolManager()
         self.reflection_module = ReflectionModule(self.llm_client)
         self.evaluator = Evaluator()
-        
+
         print("✓ RAG Agent initialized")
-    
+
     def process_query(self, question: str, include_reasoning: bool = True):
         """
         Process a query through the RAG pipeline.
-        
+
         Args:
             question: User's question
             include_reasoning: Whether to include reasoning details
-        
+
         Returns:
             Dictionary with answer and metadata
         """
         try:
             # 1. Analyze query
             analysis = self.reasoning_engine.analyze_query(question)
-            
+
             # 2. Retrieve context
             context = self.retriever.retrieve(question, top_k=5)
-            
+
             # 3. Determine if tools needed
             tool_results = []
             if analysis.get('requires_tools', False):
@@ -87,7 +87,7 @@ class RAGAgent:
                     result = self.tool_manager.execute_tool(tool_name, query=question)
                     if result.get('success'):
                         tool_results.append(result)
-            
+
             # 4. Generate answer
             context_text = PromptTemplates.format_context(context)
             prompt = PromptTemplates.rag_query_template(context_text, question)
@@ -96,16 +96,16 @@ class RAGAgent:
                 max_tokens=int(os.getenv("MAX_TOKENS", 500)),
                 temperature=float(os.getenv("TEMPERATURE", 0.7))
             )
-            
+
             # 5. Reflect on answer
             reflection = self.reflection_module.reflect(question, context, answer)
-            
+
             # 6. Self-correct if needed
             if reflection.get('needs_correction', False):
                 answer = self.self_correct(question, context, answer, reflection)
                 # Re-reflect on corrected answer
                 reflection = self.reflection_module.reflect(question, context, answer)
-            
+
             # Build response
             result = {
                 "answer": answer,
@@ -118,7 +118,7 @@ class RAGAgent:
                     for c in context
                 ]
             }
-            
+
             if include_reasoning:
                 result.update({
                     "reasoning": {
@@ -133,33 +133,33 @@ class RAGAgent:
                     "context_count": len(context),
                     "tools_used": [t.get('tool') for t in tool_results]
                 })
-            
+
             return result
-            
+
         except Exception as e:
             return {
                 "error": str(e),
                 "answer": "An error occurred while processing your question.",
                 "confidence": 0.0
             }
-    
+
     def self_correct(self, question, context, answer, reflection):
         """
         Self-correction mechanism.
-        
+
         Args:
             question: Original question
             context: Retrieved context
             answer: Original answer
             reflection: Reflection results
-        
+
         Returns:
             Corrected answer
         """
         issues = reflection.get('issues', [])
         if not issues:
             return answer
-        
+
         context_text = PromptTemplates.format_context(context)
         prompt = PromptTemplates.self_correction_template(
             question=question,
@@ -167,7 +167,7 @@ class RAGAgent:
             issues=', '.join(issues),
             context=context_text
         )
-        
+
         try:
             corrected_answer = self.llm_client.generate(prompt, max_tokens=500)
             return corrected_answer
@@ -187,7 +187,7 @@ def health_check():
     try:
         ollama_status = agent.llm_client.test_connection()
         chroma_status = agent.vector_store.get_collection_stats() is not None
-        
+
         return jsonify({
             "status": "healthy",
             "services": {
@@ -207,17 +207,17 @@ def chat():
     """Chat endpoint for conversational queries."""
     try:
         data = request.get_json()
-        
+
         if not data or 'message' not in data:
             return jsonify({"error": "Missing 'message' in request"}), 400
-        
+
         message = data['message']
         include_reasoning = data.get('include_reasoning', False)
-        
+
         result = agent.process_query(message, include_reasoning)
-        
+
         return jsonify(result), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -229,14 +229,14 @@ def rag_query():
         data = request.get_json()
         question = data.get('question')
         include_reasoning = data.get('include_reasoning', True)
-        
+
         if not question:
             return jsonify({"error": "Missing 'question' parameter"}), 400
-        
+
         result = agent.process_query(question, include_reasoning)
-        
+
         return jsonify(result), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -248,17 +248,17 @@ def retrieve_context():
         data = request.get_json()
         query = data.get('query')
         top_k = data.get('top_k', 5)
-        
+
         if not query:
             return jsonify({"error": "Missing 'query' parameter"}), 400
-        
+
         context = agent.retriever.retrieve(query, top_k=top_k)
-        
+
         return jsonify({
             "context": context,
             "count": len(context)
         }), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -269,7 +269,7 @@ def evaluate():
     try:
         data = request.get_json()
         test_questions = data.get('test_questions', [])
-        
+
         results = []
         for item in test_questions:
             question = item.get('question')
@@ -279,12 +279,12 @@ def evaluate():
                 "answer": result.get('answer'),
                 "confidence": result.get('confidence', 0.0)
             })
-        
+
         return jsonify({
             "results": results,
             "total": len(results)
         }), 200
-        
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -295,6 +295,70 @@ def get_stats():
     try:
         stats = agent.vector_store.get_collection_stats()
         return jsonify(stats), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/models', methods=['GET'])
+def list_models():
+    """OpenAI-compatible models endpoint required by Open WebUI."""
+    return jsonify({
+        "object": "list",
+        "data": [
+            {
+                "id": "rag-agent",
+                "object": "model",
+                "created": 1700000000,
+                "owned_by": "local",
+                "name": "RAG Agent"
+            }
+        ]
+    }), 200
+
+
+@app.route('/api/chat/completions', methods=['POST'])
+def chat_completions():
+    """OpenAI-compatible chat completions endpoint for Open WebUI."""
+    try:
+        data = request.get_json()
+
+        # Extract last user message from OpenAI format
+        messages = data.get('messages', [])
+        user_message = next(
+            (m['content'] for m in reversed(messages) if m['role'] == 'user'),
+            None
+        )
+
+        if not user_message:
+            return jsonify({"error": "No user message found"}), 400
+
+        # Process through your RAG pipeline
+        result = agent.process_query(user_message, include_reasoning=False)
+        answer = result.get('answer', 'No answer generated')
+
+        # Return in OpenAI-compatible format
+        return jsonify({
+            "id": "chatcmpl-rag",
+            "object": "chat.completion",
+            "created": 1700000000,
+            "model": "rag-agent",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": answer
+                    },
+                    "finish_reason": "stop"
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0
+            }
+        }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -319,9 +383,9 @@ def index():
 if __name__ == '__main__':
     port = int(os.getenv('FLASK_PORT', 5000))
     debug = os.getenv('FLASK_ENV', 'production') == 'development'
-    
+
     print(f"\n{'='*60}")
     print(f"Flask API running on http://0.0.0.0:{port}")
     print(f"{'='*60}\n")
-    
+
     app.run(host='0.0.0.0', port=port, debug=debug)

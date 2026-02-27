@@ -1,9 +1,11 @@
 # AI-Agentic RAG System - Capstone Project
 
 ## Project Overview
+
 This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part of the Ciklum AI Academy. The system processes multi-format knowledge bases (PDFs and audio) and generates intelligent responses with autonomous reasoning, tool-calling, and self-reflection capabilities.
 
 ## Table of Contents
+
 - [Features](#features)
 - [Technology Stack](#technology-stack)
 - [Quick Start](#quick-start)
@@ -20,12 +22,14 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 ## Features
 
 ### Core RAG Capabilities
+
 - **Multi-format Data Processing**: Handles PDFs and audio/video files with ffmpeg-based audio extraction
 - **Intelligent Chunking**: Semantic text chunking with configurable overlap
 - **Vector Search**: ChromaDB-based similarity search with nomic-embed-text embeddings
 - **Hybrid Retrieval**: Combines vector similarity with keyword matching for better results
 
 ### Agentic Features
+
 - **Query Analysis**: Understands user intent and identifies key concepts
 - **Chain-of-Thought Reasoning**: Step-by-step reasoning for complex queries
 - **Tool Execution**: Can use tools like search, calculate, compare, and summarize
@@ -33,6 +37,7 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 - **Self-Correction**: Automatically improves low-confidence answers
 
 ### Deployment & Infrastructure
+
 - **Containerized Architecture**: Docker/Podman-based with health checks and proper orchestration
 - **Modern UI**: Open WebUI provides ChatGPT-like interface
 - **REST API**: Flask-based API for programmatic access
@@ -40,12 +45,14 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 - **Cross-Platform**: Works on Linux, macOS, Windows, and Raspberry Pi 5
 
 ### Evaluation & Monitoring
+
 - **Confidence Scoring**: Every answer includes a confidence score
 - **Source Citations**: Tracks and displays source documents
 - **Performance Metrics**: Retrieval and generation quality metrics
 - **Test Suite**: Comprehensive test questions for validation
 
 ## Technology Stack
+
 - **LLM**: Gemma 3 12B (via Ollama)
 - **Embeddings**: nomic-embed-text
 - **Vector DB**: ChromaDB
@@ -58,6 +65,7 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 ## Quick Start
 
 ### Prerequisites
+
 - Docker or Podman installed
 - 14GB+ RAM available (8GB for Raspberry Pi 5)
 - 25GB+ disk space
@@ -66,35 +74,21 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 
 ### Automated Setup (Recommended)
 
-**Linux/Mac:**
-```bash
-chmod +x docker-startup.sh
-./docker-startup.sh
-```
-
-**Windows:**
-```batch
-docker-startup.bat
+```sh
+docker-compose up
 ```
 
 This will:
+
 1. Start all services (Ollama, Whisper, ChromaDB, Flask API, Open WebUI)
 2. Wait for health checks to pass
 3. Pull required models (Gemma 3 12B + nomic-embed-text)
 4. Display service URLs
 
-**Windows Alternative (if build issues occur):**
-```batch
-REM Use simplified setup (services only, Flask runs locally)
-docker compose -f docker-compose.simple.yml up -d
-python api/app.py
-```
-
-See [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) and [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) for details.
-
 ### Manual Setup Steps
 
 #### 1. Start Services
+
 ```bash
 # Using Docker
 docker compose up -d
@@ -104,6 +98,7 @@ podman-compose up -d
 ```
 
 #### 2. Pull Models
+
 ```bash
 # Pull Gemma 3 12B (Laptop/Desktop)
 docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
@@ -119,11 +114,13 @@ docker exec ollama ollama list
 ```
 
 #### 3. Install Python Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 #### 4. Process Data
+
 ```bash
 # Automated processing (recommended)
 python process_data.py
@@ -133,9 +130,10 @@ python transcribe_videos.py
 ```
 
 #### 5. Access the System
-- **Open WebUI**: http://localhost:3000
-- **Flask API**: http://localhost:5000
-- **API Docs**: http://localhost:5000/apidocs
+
+- **Open WebUI**: <http://localhost:3000>
+- **Flask API**: <http://localhost:5000>
+- **API Docs**: <http://localhost:5000/apidocs>
 - **CLI Interface**: `python main.py`
 
 ## Project Structure
@@ -195,6 +193,7 @@ CapstoneProject/
 ## Configuration
 
 ### Environment Variables (.env)
+
 ```bash
 # Ollama Configuration
 OLLAMA_BASE_URL=http://localhost:11434
@@ -222,15 +221,16 @@ CHUNK_OVERLAP=150
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Open WebUI | http://localhost:3000 | Web chat interface |
-| Flask API | http://localhost:5000 | REST API |
-| Ollama | http://localhost:11434 | LLM service |
-| ChromaDB | http://localhost:8000 | Vector database |
-| Whisper | http://localhost:9000 | Audio transcription |
+| Open WebUI | <http://localhost:3000> | Web chat interface |
+| Flask API | <http://localhost:5000> | REST API |
+| Ollama | <http://localhost:11434> | LLM service |
+| ChromaDB | <http://localhost:8000> | Vector database |
+| Whisper | <http://localhost:9000> | Audio transcription |
 
 ## Usage
 
 ### CLI Interface
+
 ```bash
 # Start the CLI
 python main.py
@@ -246,44 +246,19 @@ python main.py
 
 ### Flask API
 
-#### Health Check
-```bash
-curl http://localhost:5000/health
-```
+Can play with rest api:
 
-#### Chat Endpoint
-```bash
-curl -X POST http://localhost:5000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What are the production dos for RAG?", "include_reasoning": true}'
-```
-
-#### RAG Query
-```bash
-curl -X POST http://localhost:5000/api/rag/query \
-  -H "Content-Type: application/json" \
-  -d '{"question": "Explain hybrid search", "include_reasoning": true}'
-```
-
-#### Retrieve Context Only
-```bash
-curl -X POST http://localhost:5000/api/rag/retrieve \
-  -H "Content-Type: application/json" \
-  -d '{"query": "ColPali approach", "top_k": 3}'
-```
-
-#### Get Statistics
-```bash
-curl http://localhost:5000/api/admin/stats
-```
+[Endpoints](./api/api.http)
 
 ### Open WebUI
-1. Navigate to http://localhost:3000
+
+1. Navigate to <http://localhost:3000>
 2. Create an account (first user becomes admin)
-3. Select "gemma3:12b-instruct-q4_K_M" from model dropdown
+3. Select Rag Agent from model dropdown
 4. Start asking questions about your knowledge base
 
 ### Python Client Example
+
 ```python
 import requests
 
@@ -305,11 +280,13 @@ print(f"Sources: {len(result['sources'])}")
 ## Testing
 
 ### Required Test Questions
+
 1. "What are the production 'Do's' for RAG?"
 2. "What is the difference between standard retrieval and the ColPali approach?"
 3. "Why is hybrid search better than vector-only search?"
 
 ### Running Tests
+
 ```bash
 # Via CLI
 python main.py
@@ -322,6 +299,7 @@ python tests/test_questions.py
 ## Deployment Options
 
 ### Option 1: Laptop/Desktop (Development)
+
 - **Model**: gemma3:12b-instruct-q4_K_M
 - **RAM**: 14GB+
 - **Storage**: 25GB+
@@ -329,6 +307,7 @@ python tests/test_questions.py
 - **Best for**: Development and testing
 
 ### Option 2: Raspberry Pi 5 (Edge Deployment)
+
 - **Model**: gemma3:2b-instruct-q4_K_M
 - **RAM**: 8GB
 - **Storage**: 64GB+
@@ -342,6 +321,7 @@ See [PI5AI.md](./PI5AI.md) for detailed Raspberry Pi 5 setup.
 ### Essential Commands
 
 #### Start/Stop Services
+
 ```bash
 # Start all services
 docker compose up -d
@@ -360,6 +340,7 @@ docker compose ps
 ```
 
 #### Pull Models
+
 ```bash
 # Gemma 3 12B (Laptop/Desktop)
 docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
@@ -375,6 +356,7 @@ docker exec ollama ollama list
 ```
 
 #### Process Data
+
 ```bash
 # Full pipeline
 python process_data.py
@@ -388,6 +370,7 @@ python src/data_processing/audio_transcriber.py --input ./resources
 ```
 
 ### Docker Management
+
 ```bash
 # View logs
 docker compose logs -f
@@ -410,6 +393,7 @@ docker compose up -d --build
 ### Permanent Files (Keep)
 
 #### Core Application
+
 - `main.py` - CLI interface
 - `process_data.py` - Data processing pipeline
 - `transcribe_videos.py` - **Video transcription utility**
@@ -417,12 +401,14 @@ docker compose up -d --build
 - `src/**/*.py` - All source code modules
 
 #### Docker Configuration
+
 - `docker-compose.yml` - Full Docker setup with Flask
 - `docker-compose.simple.yml` - Simplified setup (Windows)
 - `Dockerfile.flask` - Flask container with ffmpeg
 - `docker-startup.sh` / `docker-startup.bat` - Startup scripts
 
 #### Documentation
+
 - `README.md` - This file (main documentation)
 - `IMPLEMENTATION.md` - System architecture and design
 - `PI5AI.md` - Raspberry Pi 5 deployment guide
@@ -435,6 +421,7 @@ docker compose up -d --build
 - `COMPLETION_SUMMARY.md` - Project completion summary
 
 #### Configuration
+
 - `requirements.txt` - Python dependencies
 - `.env` - Environment variables (user-created)
 - `.gitignore` - Git ignore patterns
@@ -443,12 +430,14 @@ docker compose up -d --build
 ### Why Keep `transcribe_videos.py`?
 
 This standalone utility is **NOT temporary** because:
+
 1. Users can transcribe new videos without running full pipeline
 2. Useful for debugging transcription issues
 3. Referenced in documentation
 4. Focused tool for one specific task
 
 **Example use cases:**
+
 ```bash
 # Transcribe new videos
 python transcribe_videos.py
@@ -458,6 +447,7 @@ docker compose exec flask-api python transcribe_videos.py
 ```
 
 ### Temporary Files (Gitignored)
+
 - `test_*.py` - Temporary test files
 - `*.wav` - Temporary audio extractions
 - `data/processed/` - Generated data
@@ -466,6 +456,7 @@ docker compose exec flask-api python transcribe_videos.py
 ## Troubleshooting
 
 ### Services Not Starting
+
 ```bash
 # Check service status
 docker compose ps
@@ -478,6 +469,7 @@ docker compose restart
 ```
 
 ### Ollama Connection Issues
+
 ```bash
 # Test Ollama
 curl http://localhost:11434/api/tags
@@ -490,11 +482,13 @@ docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
 ```
 
 ### Memory Issues
+
 - Use smaller model: `gemma3:2b-instruct-q4_K_M`
 - Reduce batch sizes in configuration
 - Increase Docker memory limits in Docker Desktop settings
 
 ### Poor Answers
+
 ```bash
 # Reprocess data
 python process_data.py
@@ -504,6 +498,7 @@ curl http://localhost:5000/api/admin/stats
 ```
 
 ### Clean Restart
+
 ```bash
 docker compose down
 docker volume rm capstoneproject_chroma_data
@@ -512,27 +507,26 @@ python process_data.py
 ```
 
 ### Windows Build Issues
-If you encounter Docker build errors on Windows:
-```batch
-REM Use simplified setup
-docker compose -f docker-compose.simple.yml up -d
 
+If you encounter Docker build errors on Windows:
+
+```batch
 REM Run Flask locally
 python api/app.py
 ```
 
-See [WINDOWS_SETUP.md](./WINDOWS_SETUP.md) for details.
-
 ### Audio Transcription Issues
+
 If videos return empty transcriptions:
+
 - Check ffmpeg is installed: `ffmpeg -version`
 - Verify Whisper service: `curl http://localhost:9000/`
 - Check Whisper logs: `docker logs whisper`
-- See [TRANSCRIPTION_SUCCESS.md](./TRANSCRIPTION_SUCCESS.md) for solution details
 
 ## Resources
 
 ### Documentation
+
 - [IMPLEMENTATION.md](./IMPLEMENTATION.md) - Detailed implementation guide
 - [PI5AI.md](./PI5AI.md) - Raspberry Pi 5 requirements
 - [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) - Complete Docker guide
@@ -541,76 +535,48 @@ If videos return empty transcriptions:
 - [TRANSCRIPTION_SUCCESS.md](./TRANSCRIPTION_SUCCESS.md) - Audio transcription solution
 
 ### External Resources
+
 - [Ollama Documentation](https://ollama.ai/)
 - [ChromaDB Docs](https://docs.trychroma.com/)
 - [Whisper ASR](https://github.com/ahmetoner/whisper-asr-webservice)
 - [Gemma 3 Model Card](https://ai.google.dev/gemma)
 
 ### Knowledge Base Materials
+
 All materials are located in `./resources/`:
+
 - RAG Intro.pdf
 - Databases for GenAI.pdf
 - Productized & Enterprise RAG.pdf
 - Architecture & Design Patterns.pdf
 - Video lectures (MP4 files - transcribed automatically)
 
-## Development Status
-
-### ✅ Completed Components
-- [x] Project structure
-- [x] Docker/Podman configuration with health checks
-- [x] LLM client (Ollama + Gemma 3)
-- [x] Embedding generator (nomic-embed-text)
-- [x] Vector store (ChromaDB)
-- [x] PDF loader (pdfplumber)
-- [x] Audio transcriber (Whisper API + ffmpeg)
-- [x] Text chunking strategy
-- [x] Retrieval system with hybrid search
-- [x] Reasoning engine (query analysis, chain-of-thought)
-- [x] Tool manager (tool registration & execution)
-- [x] Reflection module (self-assessment)
-- [x] Flask API with all endpoints
-- [x] Evaluation system
-- [x] CLI interface (main.py)
-- [x] LinkedIn post generator
-- [x] Architecture diagram (architecture.mmd)
-- [x] Test questions suite
-- [x] Prompt templates
-- [x] Docker deployment with ffmpeg
-- [x] Data processing pipeline
-- [x] Vector store population
-
-### 📋 Next Steps
-1. ✅ Start all services with docker-compose
-2. ✅ Pull Ollama models (Gemma 3 + embeddings)
-3. ✅ Process data from ./resources folder
-4. ✅ Generate embeddings and populate vector store
-5. ⏳ Test with required questions
-6. ⏳ Run evaluation metrics
-7. ⏳ Create demo video
-8. ⏳ Generate and publish LinkedIn post
-
 ## System Requirements
 
 ### Minimum Requirements
+
 - **RAM**: 14GB (8GB for Raspberry Pi 5 with Gemma 3 2B)
 - **Storage**: 25GB free space
 - **CPU**: 4+ cores recommended
 - **OS**: Linux, macOS, Windows 10/11, or Raspberry Pi OS
 
 ### Recommended Requirements
+
 - **RAM**: 32GB for optimal performance
 - **Storage**: 50GB+ for multiple models
 - **CPU**: 8+ cores
 - **GPU**: Optional (not required, CPU-only deployment)
 
 ## Contributing
+
 This is a capstone project for the Ciklum AI Academy. For questions or issues, please refer to the course materials or contact your mentor.
 
 ## License
+
 Educational project - Ciklum AI Academy
 
 ## Acknowledgments
+
 - Built as part of the Ciklum AI Academy Engineering Track
 - Uses Gemma 3 by Google
 - Powered by Ollama, ChromaDB, and Whisper
@@ -618,9 +584,18 @@ Educational project - Ciklum AI Academy
 
 ---
 
+## How to
+
+### Chroma DB
+
+```bash
+
+chroma browse rag_knowledge_base --local
+chroma browse rag_knowledge_base --host http://localhost:8000
+```
+
 **Quick Links:**
-- [Quick Start](#quick-start)
+
 - [Docker Deployment Guide](./DOCKER_DEPLOYMENT.md)
-- [Windows Setup](./WINDOWS_SETUP.md)
 - [Troubleshooting](./TROUBLESHOOTING.md)
 - [Implementation Details](./IMPLEMENTATION.md)

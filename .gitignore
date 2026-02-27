@@ -229,3 +229,6 @@ temp_audio_*.wav
 ollama_data/
 chroma_data/
 open_webui_data/
+
+/resources/2_part_Databases_for_GenAI.mp4
+/resources/1_part_RAG_Intro.mp4

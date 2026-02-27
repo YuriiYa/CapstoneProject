@@ -1,0 +1,146 @@
+### Variables
+@baseUrl = http://localhost:5000
+
+### =============================================
+### Health & Info
+### =============================================
+
+### Health Check
+GET {{baseUrl}}/health HTTP/1.1
+
+###
+
+### API Info (Index)
+GET {{baseUrl}}/ HTTP/1.1
+
+###
+
+### Vector Store Stats
+GET {{baseUrl}}/api/admin/stats HTTP/1.1
+
+###
+
+### List Models (OpenAI-compatible)
+GET {{baseUrl}}/api/models HTTP/1.1
+
+### =============================================
+### Chat Endpoints
+### =============================================
+
+### Simple Chat
+POST {{baseUrl}}/api/chat HTTP/1.1
+Content-Type: application/json
+
+{
+    "message": "What is retrieval augmented generation?",
+    "include_reasoning": false
+}
+
+###
+
+### Chat with Reasoning
+POST {{baseUrl}}/api/chat HTTP/1.1
+Content-Type: application/json
+
+{
+    "message": "How does embedding similarity search work?",
+    "include_reasoning": true
+}
+
+### =============================================
+### RAG Endpoints
+### =============================================
+
+### RAG Query (with reasoning)
+POST {{baseUrl}}/api/rag/query HTTP/1.1
+Content-Type: application/json
+
+{
+    "question": "What are the key components of an agentic RAG system?",
+    "include_reasoning": true
+}
+
+###
+
+### RAG Query (without reasoning)
+POST {{baseUrl}}/api/rag/query HTTP/1.1
+Content-Type: application/json
+
+{
+    "question": "Explain the reflection module in AI agents.",
+    "include_reasoning": false
+}
+
+###
+
+### Retrieve Context Only
+POST {{baseUrl}}/api/rag/retrieve HTTP/1.1
+Content-Type: application/json
+
+{
+    "query": "vector database embeddings",
+    "top_k": 5
+}
+
+###
+
+### Retrieve Context (custom top_k)
+POST {{baseUrl}}/api/rag/retrieve HTTP/1.1
+Content-Type: application/json
+
+{
+    "query": "prompt engineering techniques",
+    "top_k": 3
+}
+
+### =============================================
+### Evaluation
+### =============================================
+
+### Evaluate with Test Questions
+POST {{baseUrl}}/api/evaluate HTTP/1.1
+Content-Type: application/json
+
+{
+    "test_questions": [
+        { "question": "What is RAG?" },
+        { "question": "How do vector databases work?" },
+        { "question": "What is the role of embeddings in search?" }
+    ]
+}
+
+### =============================================
+### OpenAI-Compatible Endpoints (used by Open WebUI)
+### =============================================
+
+### Chat Completions (OpenAI format)
+POST {{baseUrl}}/api/chat/completions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer dummy-key
+
+{
+    "model": "rag-agent",
+    "messages": [
+        { "role": "system", "content": "You are a helpful assistant." },
+        { "role": "user", "content": "What is retrieval augmented generation?" }
+    ],
+    "temperature": 0.7,
+    "max_tokens": 500
+}
+
+###
+
+### Chat Completions - Multi-turn Conversation
+POST {{baseUrl}}/api/chat/completions HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer dummy-key
+
+{
+    "model": "rag-agent",
+    "messages": [
+        { "role": "user", "content": "What are embeddings?" },
+        { "role": "assistant", "content": "Embeddings are numerical vector representations of text." },
+        { "role": "user", "content": "How are they used in RAG systems?" }
+    ],
+    "temperature": 0.7
+}

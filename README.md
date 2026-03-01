@@ -608,6 +608,32 @@ chroma browse rag_knowledge_base --local
 chroma browse rag_knowledge_base --host http://localhost:8000
 ```
 
+### Useful commands
+
+### Browse ChromaDB
+```powershell
+python browse_chroma.py
+```
+
+### Test Flask API
+```powershell
+curl http://localhost:5000/health
+```
+
+### Check Containers
+```powershell
+podman ps
+```
+
+### View Container Logs
+```powershell
+podman logs chromadb
+podman logs ollama
+podman logs open-webui
+```
+
+
+
 **Quick Links:**
 
 - [Docker Deployment Guide](./DOCKER_DEPLOYMENT.md)

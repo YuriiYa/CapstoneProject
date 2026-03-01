@@ -48,11 +48,21 @@ def main():
     pdf_files = list(resources_dir.glob("*.pdf"))
     
     if pdf_files:
+        processed_count = 0
+        skipped_count = 0
+        
         for pdf_file in pdf_files:
+            output_file = pdf_output / f"{pdf_file.stem}.txt"
+            
+            # Check if already processed
+            if output_file.exists() and output_file.stat().st_size > 0:
+                print(f"⏭ Skipping (already processed): {pdf_file.name}")
+                skipped_count += 1
+                continue
+            
             print(f"Processing: {pdf_file.name}")
             try:
                 result = pdf_loader.load_pdf(str(pdf_file))
-                output_file = pdf_output / f"{pdf_file.stem}.txt"
                 
                 # Extract text from the dictionary structure
                 with open(output_file, 'w', encoding='utf-8') as f:
@@ -62,9 +72,14 @@ def main():
                         f.write("\n\n")
                 
                 print(f"✓ Extracted {result['metadata']['pages']} pages to: {output_file}")
+                processed_count += 1
             except Exception as e:
                 print(f"✗ Error: {e}")
-        print(f"\n✓ Processed {len(pdf_files)} PDF files\n")
+        
+        print(f"\n✓ Processed {processed_count} new PDF files")
+        if skipped_count > 0:
+            print(f"⏭ Skipped {skipped_count} already processed files")
+        print()
     else:
         print("No PDF files found in ./resources\n")
     
@@ -76,6 +91,7 @@ def main():
     print(f"Using Whisper service at: {whisper_url}")
     print("NOTE: Video transcription can take 5-30 minutes per file!")
     print("INFO: MP4 files will be converted to WAV format first for better compatibility")
+    print("INFO: Skipping files that have already been transcribed")
     print()
     
     try:
@@ -85,7 +101,18 @@ def main():
                      list(resources_dir.glob("*.wav"))
         
         if audio_files:
+            transcribed_count = 0
+            skipped_count = 0
+            
             for audio_file in audio_files:
+                output_file = audio_output / f"{audio_file.stem}.txt"
+                
+                # Check if already transcribed
+                if output_file.exists() and output_file.stat().st_size > 0:
+                    print(f"⏭ Skipping (already transcribed): {audio_file.name}")
+                    skipped_count += 1
+                    continue
+                
                 print(f"Transcribing: {audio_file.name}")
                 
                 try:
@@ -110,18 +137,21 @@ def main():
                         continue
                     
                     # Save clean text
-                    output_file = audio_output / f"{audio_file.stem}.txt"
                     with open(output_file, 'w', encoding='utf-8') as f:
                         f.write(text)
                     
                     print(f"✓ Saved {len(text)} characters to: {output_file}")
+                    transcribed_count += 1
                         
                 except Exception as e:
                     print(f"✗ Error: {e}")
                     import traceback
                     traceback.print_exc()
             
-            print(f"\n✓ Transcribed {len(audio_files)} audio files\n")
+            print(f"\n✓ Transcribed {transcribed_count} new audio files")
+            if skipped_count > 0:
+                print(f"⏭ Skipped {skipped_count} already transcribed files")
+            print()
         else:
             print("No audio files found in ./resources\n")
     except Exception as e:

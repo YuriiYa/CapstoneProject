@@ -337,15 +337,6 @@ OLLAMA_MODEL=gemma3:2b
      command: gunicorn -w 4 -b 0.0.0.0:5000 api.app:app
    ```
 
-3. **Add Redis caching**:
-
-   ```yaml
-   redis:
-     image: redis:alpine
-     ports:
-       - "6379:6379"
-   ```
-
 ## Security Considerations
 
 ### Production Deployment

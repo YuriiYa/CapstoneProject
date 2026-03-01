@@ -22,16 +22,16 @@ from src.agent.tool_manager import ToolManager
 from src.agent.reflection_module import ReflectionModule
 from src.agent.post_generator import LinkedInPostGenerator
 from src.config.constants import (
-    DEFAULT_CHROMA_HOST,
-    DEFAULT_CHROMA_PORT,
-    DEFAULT_CHROMA_COLLECTION_NAME,
-    DEFAULT_OLLAMA_BASE_URL,
-    DEFAULT_OLLAMA_EMBEDDING_MODEL,
-    DEFAULT_OLLAMA_MODEL,
-    DEFAULT_TOP_K,
-    DEFAULT_MAX_TOKENS,
-    DEFAULT_TEMPERATURE,
-    DEFAULT_CONFIDENCE,
+    CHROMA_HOST,
+    CHROMA_PORT,
+    CHROMA_COLLECTION_NAME,
+    OLLAMA_BASE_URL,
+    OLLAMA_EMBEDDING_MODEL,
+    OLLAMA_MODEL,
+    TOP_K,
+    MAX_TOKENS,
+    TEMPERATURE,
+    CONFIDENCE,
 )
 
 
@@ -46,15 +46,15 @@ class RAGAgentCLI:
         # Initialize components
         try:
             self.vector_store = ChromaVectorStore(
-                host=os.getenv("CHROMA_HOST", DEFAULT_CHROMA_HOST),
-                port=int(os.getenv("CHROMA_PORT", DEFAULT_CHROMA_PORT)),
-                collection_name=os.getenv("CHROMA_COLLECTION_NAME", DEFAULT_CHROMA_COLLECTION_NAME)
+                host=CHROMA_HOST,
+                port=CHROMA_PORT,
+                collection_name=CHROMA_COLLECTION_NAME
             )
             print("✓ Vector store connected")
             
             self.embeddings = OllamaEmbeddings(
-                base_url=os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
-                model=os.getenv("OLLAMA_EMBEDDING_MODEL", DEFAULT_OLLAMA_EMBEDDING_MODEL)
+                base_url=OLLAMA_BASE_URL,
+                model=OLLAMA_EMBEDDING_MODEL
             )
             print("✓ Embeddings generator initialized")
             
@@ -62,8 +62,8 @@ class RAGAgentCLI:
             print("✓ Retriever initialized")
             
             self.llm_client = OllamaClient(
-                base_url=os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
-                model=os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+                base_url=OLLAMA_BASE_URL,
+                model=OLLAMA_MODEL
             )
             print("✓ LLM client initialized")
             
@@ -114,7 +114,7 @@ class RAGAgentCLI:
             # 2. Retrieve context
             if verbose:
                 print("📚 Retrieving context...")
-            context = self.retriever.retrieve(question, top_k=DEFAULT_TOP_K)
+            context = self.retriever.retrieve(question, top_k=TOP_K)
             if verbose:
                 print(f"   Retrieved {len(context)} relevant chunks")
                 print()
@@ -124,7 +124,7 @@ class RAGAgentCLI:
                 print("💭 Generating answer...")
             context_text = PromptTemplates.format_context(context)
             prompt = PromptTemplates.rag_query_template(context_text, question)
-            answer = self.llm_client.generate(prompt, max_tokens=DEFAULT_MAX_TOKENS, temperature=DEFAULT_TEMPERATURE)
+            answer = self.llm_client.generate(prompt, max_tokens=MAX_TOKENS, temperature=TEMPERATURE)
             
             print(f"\n📝 Answer:\n{answer}\n")
             
@@ -132,7 +132,7 @@ class RAGAgentCLI:
             if verbose:
                 print("🤔 Reflecting on answer quality...")
             reflection = self.reflection_module.reflect(question, context, answer)
-            confidence = reflection.get('confidence', DEFAULT_CONFIDENCE)
+            confidence = reflection.get('confidence', CONFIDENCE)
             
             print(f"✓ Confidence: {confidence:.1%}")
             

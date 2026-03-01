@@ -24,20 +24,19 @@ from src.agent.tool_manager import ToolManager
 from src.agent.reflection_module import ReflectionModule
 from src.evaluation.evaluator import Evaluator
 from src.config.constants import (
-    DEFAULT_OLLAMA_BASE_URL,
-    DEFAULT_OLLAMA_EMBEDDING_MODEL,
-    DEFAULT_OLLAMA_MODEL,
-    DEFAULT_CHROMA_HOST,
-    DEFAULT_CHROMA_PORT,
-    DEFAULT_CHROMA_COLLECTION_NAME,
-    DEFAULT_MAX_TOKENS,
-    DEFAULT_TEMPERATURE,
-    DEFAULT_TOP_K,
-    DEFAULT_INCLUDE_REASONING,
-    DEFAULT_CHAT_INCLUDE_REASONING,
-    DEFAULT_CONFIDENCE,
-    DEFAULT_FLASK_PORT,
-    DEFAULT_ANSWER_ERROR_MESSAGE,
+    OLLAMA_BASE_URL,
+    OLLAMA_EMBEDDING_MODEL,
+    OLLAMA_MODEL,
+    CHROMA_HOST,
+    CHROMA_PORT,
+    CHROMA_COLLECTION_NAME,
+    MAX_TOKENS,
+    TEMPERATURE,
+    TOP_K,
+    INCLUDE_REASONING,
+    CONFIDENCE,
+    FLASK_PORT,
+    ANSWER_ERROR_MESSAGE,
 )
 
 app = Flask(__name__)
@@ -53,21 +52,21 @@ class RAGAgent:
 
         # Initialize components
         self.vector_store = ChromaVectorStore(
-            host=os.getenv("CHROMA_HOST", DEFAULT_CHROMA_HOST),
-            port=int(os.getenv("CHROMA_PORT", DEFAULT_CHROMA_PORT)),
-            collection_name=os.getenv("CHROMA_COLLECTION_NAME", DEFAULT_CHROMA_COLLECTION_NAME)
+            host=CHROMA_HOST,
+            port=CHROMA_PORT,
+            collection_name=CHROMA_COLLECTION_NAME
         )
 
         self.embeddings = OllamaEmbeddings(
-            base_url=os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
-            model=os.getenv("OLLAMA_EMBEDDING_MODEL", DEFAULT_OLLAMA_EMBEDDING_MODEL)
+            base_url=OLLAMA_BASE_URL,
+            model=OLLAMA_EMBEDDING_MODEL
         )
 
         self.retriever = Retriever(self.vector_store, self.embeddings)
 
         self.llm_client = OllamaClient(
-            base_url=os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL),
-            model=os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+            base_url=OLLAMA_BASE_URL,
+            model=OLLAMA_MODEL
         )
 
         self.reasoning_engine = ReasoningEngine(self.llm_client)
@@ -77,7 +76,7 @@ class RAGAgent:
 
         print("✓ RAG Agent initialized")
 
-    def process_query(self, question: str, include_reasoning: bool = DEFAULT_INCLUDE_REASONING):
+    def process_query(self, question: str, include_reasoning: bool = INCLUDE_REASONING):
         """
         Process a query through the RAG pipeline.
 
@@ -93,7 +92,7 @@ class RAGAgent:
             analysis = self.reasoning_engine.analyze_query(question)
 
             # 2. Retrieve context
-            context = self.retriever.retrieve(question, top_k=DEFAULT_TOP_K)
+            context = self.retriever.retrieve(question, top_k=TOP_K)
 
             # 3. Determine if tools needed
             tool_results = []
@@ -109,8 +108,8 @@ class RAGAgent:
             prompt = PromptTemplates.rag_query_template(context_text, question)
             answer = self.llm_client.generate(
                 prompt,
-                max_tokens=int(os.getenv("MAX_TOKENS", DEFAULT_MAX_TOKENS)),
-                temperature=float(os.getenv("TEMPERATURE", DEFAULT_TEMPERATURE))
+                max_tokens=MAX_TOKENS,
+                temperature=TEMPERATURE
             )
 
             # 5. Reflect on answer
@@ -125,7 +124,7 @@ class RAGAgent:
             # Build response
             result = {
                 "answer": answer,
-                "confidence": reflection.get('confidence', DEFAULT_CONFIDENCE),
+                "confidence": reflection.get('confidence', CONFIDENCE),
                 "sources": [
                     {
                         "source": c.get('metadata', {}).get('source', 'Unknown'),
@@ -155,8 +154,8 @@ class RAGAgent:
         except Exception as e:
             return {
                 "error": str(e),
-                "answer": DEFAULT_ANSWER_ERROR_MESSAGE,
-                "confidence": DEFAULT_CONFIDENCE
+                "answer": ANSWER_ERROR_MESSAGE,
+                "confidence": CONFIDENCE
             }
 
     def self_correct(self, question, context, answer, reflection):
@@ -185,7 +184,7 @@ class RAGAgent:
         )
 
         try:
-            corrected_answer = self.llm_client.generate(prompt, max_tokens=DEFAULT_MAX_TOKENS)
+            corrected_answer = self.llm_client.generate(prompt, max_tokens=MAX_TOKENS)
             return corrected_answer
         except:
             return answer  # Return original if correction fails
@@ -228,7 +227,7 @@ def chat():
             return jsonify({"error": "Missing 'message' in request"}), 400
 
         message = data['message']
-        include_reasoning = data.get('include_reasoning', DEFAULT_CHAT_INCLUDE_REASONING)
+        include_reasoning = data.get('include_reasoning', INCLUDE_REASONING)
 
         result = agent.process_query(message, include_reasoning)
 
@@ -244,7 +243,7 @@ def rag_query():
     try:
         data = request.get_json()
         question = data.get('question')
-        include_reasoning = data.get('include_reasoning', DEFAULT_INCLUDE_REASONING)
+        include_reasoning = data.get('include_reasoning', INCLUDE_REASONING)
 
         if not question:
             return jsonify({"error": "Missing 'question' parameter"}), 400
@@ -263,7 +262,7 @@ def retrieve_context():
     try:
         data = request.get_json()
         query = data.get('query')
-        top_k = data.get('top_k', DEFAULT_TOP_K)
+        top_k = data.get('top_k', TOP_K)
 
         if not query:
             return jsonify({"error": "Missing 'query' parameter"}), 400
@@ -293,7 +292,7 @@ def evaluate():
             results.append({
                 "question": question,
                 "answer": result.get('answer'),
-                "confidence": result.get('confidence', DEFAULT_CONFIDENCE)
+                "confidence": result.get('confidence', CONFIDENCE)
             })
 
         return jsonify({
@@ -397,7 +396,7 @@ def index():
 
 
 if __name__ == '__main__':
-    port = int(os.getenv('FLASK_PORT', DEFAULT_FLASK_PORT))
+    port = FLASK_PORT
     debug = os.getenv('FLASK_ENV', 'production') == 'development'
 
     print(f"\n{'='*60}")
@@ -405,3 +404,4 @@ if __name__ == '__main__':
     print(f"{'='*60}\n")
 
     app.run(host='0.0.0.0', port=port, debug=debug)
+

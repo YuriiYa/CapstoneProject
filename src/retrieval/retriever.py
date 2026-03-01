@@ -5,6 +5,10 @@ Combines vector similarity search with keyword-based search for better results.
 
 from typing import List, Dict, Optional
 import numpy as np
+from src.config.constants import (
+    TOP_K,
+    SIMILARITY_THRESHOLD
+)
 
 
 class Retriever:
@@ -26,8 +30,8 @@ class Retriever:
     def retrieve(
         self,
         query: str,
-        top_k: int = 5,
-        similarity_threshold: float = 0.7,
+        top_k: int = TOP_K,
+        similarity_threshold: float = SIMILARITY_THRESHOLD,
         use_hybrid: bool = False
     ) -> List[Dict]:
         """
@@ -99,7 +103,7 @@ class Retriever:
     def retrieve_with_context(
         self,
         query: str,
-        top_k: int = 5,
+        top_k: int = TOP_K,
         expand_context: bool = True
     ) -> List[Dict]:
         """
@@ -140,7 +144,7 @@ class Retriever:
         self,
         query: str,
         metadata_filter: Dict,
-        top_k: int = 5
+        top_k: int = TOP_K
     ) -> List[Dict]:
         """
         Retrieve documents filtered by metadata.

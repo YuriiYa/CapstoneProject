@@ -3,6 +3,13 @@ from chromadb.config import Settings
 from typing import List, Dict, Optional
 import uuid
 import os
+from src.config.constants import (
+    CHROMA_HOST,
+    CHROMA_PORT,
+    CHROMA_COLLECTION_NAME,
+    TOP_K,
+    SIMILARITY_THRESHOLD
+)
 
 
 class ChromaVectorStore:
@@ -12,9 +19,9 @@ class ChromaVectorStore:
         port: int = None,
         collection_name: str = None
     ):
-        host = host or os.getenv("CHROMA_HOST", "localhost")
-        port = port or int(os.getenv("CHROMA_PORT", 8000))
-        collection_name = collection_name or os.getenv("CHROMA_COLLECTION_NAME", "rag_knowledge_base")
+        host = host or CHROMA_HOST
+        port = port or CHROMA_PORT
+        collection_name = collection_name or CHROMA_COLLECTION_NAME
         
         # Connect to containerized ChromaDB
         # Use v2 API compatible settings
@@ -63,7 +70,7 @@ class ChromaVectorStore:
     def similarity_search(
         self,
         query_embedding: List[float],
-        top_k: int = 5,
+        top_k: int = TOP_K,
         filter_dict: Optional[Dict] = None
     ) -> Dict:
         """Search for similar documents"""
@@ -77,8 +84,8 @@ class ChromaVectorStore:
     def similarity_search_with_score(
         self,
         query_embedding: List[float],
-        top_k: int = 5,
-        similarity_threshold: float = 0.7
+        top_k: int = TOP_K,
+        similarity_threshold: float = SIMILARITY_THRESHOLD
     ) -> List[Dict]:
         """Search with similarity score filtering"""
         results = self.collection.query(

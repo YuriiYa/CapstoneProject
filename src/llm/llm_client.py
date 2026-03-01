@@ -3,10 +3,12 @@ from typing import List, Dict, Optional
 import json
 import os
 from src.config.constants import (
-    DEFAULT_OLLAMA_BASE_URL,
-    DEFAULT_OLLAMA_MODEL,
-    DEFAULT_MAX_TOKENS,
-    DEFAULT_TEMPERATURE,
+    OLLAMA_BASE_URL,
+    OLLAMA_MODEL,
+    MAX_TOKENS,
+    TEMPERATURE,
+    TOP_P,
+    TOP_K
 )
 
 
@@ -16,14 +18,14 @@ class OllamaClient:
         base_url: str = None,
         model: str = None
     ):
-        self.base_url = base_url or os.getenv("OLLAMA_BASE_URL", DEFAULT_OLLAMA_BASE_URL)
-        self.model = model or os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+        self.base_url = base_url or OLLAMA_BASE_URL
+        self.model = model or OLLAMA_MODEL
     
     def generate(
         self,
         prompt: str,
-        max_tokens: int = DEFAULT_MAX_TOKENS,
-        temperature: float = DEFAULT_TEMPERATURE,
+        max_tokens: int = MAX_TOKENS,
+        temperature: float = TEMPERATURE,
         stream: bool = False
     ) -> str:
         """Generate text using Ollama"""
@@ -36,8 +38,8 @@ class OllamaClient:
                 "options": {
                     "temperature": temperature,
                     "num_predict": max_tokens,
-                    "top_p": 0.9,
-                    "top_k": 40
+                    "top_p": TOP_P,
+                    "top_k": TOP_K
                 }
             }
         )
@@ -51,8 +53,8 @@ class OllamaClient:
     def chat(
         self,
         messages: List[Dict[str, str]],
-        max_tokens: int = DEFAULT_MAX_TOKENS,
-        temperature: float = DEFAULT_TEMPERATURE
+        max_tokens: int = MAX_TOKENS,
+        temperature: float = TEMPERATURE
     ) -> str:
         """Chat completion format (recommended for Gemma 3)"""
         response = requests.post(

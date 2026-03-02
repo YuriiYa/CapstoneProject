@@ -2,13 +2,14 @@ from pathlib import Path
 from typing import List, Dict
 import re
 import argparse
-import os
+
+from src.config.constants import CHUNK_SIZE, CHUNK_OVERLAP
 
 
 class TextChunker:
     def __init__(self, chunk_size: int = None, chunk_overlap: int = None):
-        self.chunk_size = chunk_size or int(os.getenv("CHUNK_SIZE", 800))
-        self.chunk_overlap = chunk_overlap or int(os.getenv("CHUNK_OVERLAP", 150))
+        self.chunk_size = chunk_size or CHUNK_SIZE
+        self.chunk_overlap = chunk_overlap or CHUNK_OVERLAP
     
     def chunk_text(self, text: str, metadata: Dict = None) -> List[Dict]:
         """Split text into chunks with overlap"""
@@ -111,8 +112,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Chunk text files')
     parser.add_argument('--input', default='./data/processed', help='Input directory containing text files')
     parser.add_argument('--output', default='./data/processed/chunks', help='Output directory for chunks')
-    parser.add_argument('--chunk-size', type=int, default=800, help='Chunk size in characters')
-    parser.add_argument('--overlap', type=int, default=150, help='Overlap size in characters')
+    parser.add_argument('--chunk-size', type=int, default=CHUNK_SIZE, help='Chunk size in characters')
+    parser.add_argument('--overlap', type=int, default=CHUNK_OVERLAP, help='Overlap size in characters')
     
     args = parser.parse_args()
     

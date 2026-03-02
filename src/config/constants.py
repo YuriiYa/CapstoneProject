@@ -74,6 +74,13 @@ TOP_K = get_env_or_default("TOP_K_RETRIEVAL", 5)
 SIMILARITY_THRESHOLD = get_env_or_default("SIMILARITY_THRESHOLD", 0.7)
 
 
+# Text Chunking Parameters
+
+CHUNK_SIZE = get_env_or_default("CHUNK_SIZE", 800)
+
+CHUNK_OVERLAP = get_env_or_default("CHUNK_OVERLAP", 150)
+
+
 # Application Configuration
 
 INCLUDE_REASONING = get_env_or_default("INCLUDE_REASONING", True)

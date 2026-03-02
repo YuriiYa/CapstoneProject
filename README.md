@@ -60,22 +60,22 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 - **Audio Processing**: ffmpeg (for MP4 to WAV conversion)
 - **Backend**: Flask + Python
 - **Frontend**: Open WebUI
-- **Containerization**: Docker/Podman
+- **Containerization**: Podman
 
 ## Quick Start
 
 ### Prerequisites
 
-- Docker or Podman installed
+- Podman installed
 - 14GB+ RAM available (8GB for Raspberry Pi 5)
 - 25GB+ disk space
 - Python 3.11+ (for local development)
-- ffmpeg (included in Docker, required for local Windows setup)
+- ffmpeg (included in containers, required for local Windows setup)
 
 ### Automated Setup (Recommended)
 
 ```sh
-docker-compose up
+podman compose up
 ```
 
 This will:
@@ -90,27 +90,24 @@ This will:
 #### 1. Start Services
 
 ```bash
-# Using Docker
-docker compose up -d
-
-# OR using Podman
-podman-compose up -d
+# OR using Podman Compose
+podman compose up -d
 ```
 
 #### 2. Pull Models
 
 ```bash
 # Pull Gemma 3 12B (Laptop/Desktop)
-docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
+podman exec ollama ollama pull gemma3:12b-instruct-q4_K_M
 
 # OR Gemma 3 2B (Raspberry Pi 5)
-docker exec ollama ollama pull gemma3:2b-instruct-q4_K_M
+podman exec ollama ollama pull gemma3:2b-instruct-q4_K_M
 
 # Pull embedding model
-docker exec ollama ollama pull nomic-embed-text
+podman exec ollama ollama pull nomic-embed-text
 
 # Verify models
-docker exec ollama ollama list
+podman exec ollama ollama list
 ```
 
 #### 3. Install Python Dependencies
@@ -135,7 +132,6 @@ python transcribe_videos.py
 
 - **Open WebUI**: <http://localhost:3000>
 - **Flask API**: <http://localhost:5000>
-- **API Docs**: <http://localhost:5000/apidocs>
 - **CLI Interface**: `python main.py`
 
 ## Project Structure
@@ -180,11 +176,11 @@ CapstoneProject/
 │   ├── test_questions.py       # RAG system tests
 │   └── __init__.py
 ├── tools/                       # Utility tools
-├── docker-compose.yml           # Full Docker configuration
-├── docker-compose.simple.yml    # Simplified Docker config (Windows)
+├── docker-compose.yml           # Full Podman configuration
+├── docker-compose.simple.yml    # Simplified Podman config (Windows)
 ├── Dockerfile.flask             # Flask container with ffmpeg
-├── docker-startup.sh            # Docker startup (Linux/Mac)
-├── docker-startup.bat           # Docker startup (Windows)
+├── docker-startup.sh            # Container startup (Linux/Mac)
+├── docker-startup.bat           # Container startup (Windows)
 ├── main.py                      # CLI interface
 ├── process_data.py              # Data processing pipeline
 ├── transcribe_videos.py         # Video transcription utility
@@ -324,37 +320,37 @@ See [PI5AI.md](./PI5AI.md) for detailed Raspberry Pi 5 setup.
 
 #### Start/Stop Services
 
-```bash
+```bash 
 # Start all services
-docker compose up -d
+podman compose up -d
 
 # Stop all services
-docker compose down
+podman compose down
 
 # Restart a service
-docker compose restart [service_name]
+podman compose restart [service_name]
 
 # View logs
-docker compose logs -f [service_name]
+podman compose logs -f [service_name]
 
 # Check status
-docker compose ps
+podman compose ps
 ```
 
 #### Pull Models
 
 ```bash
 # Gemma 3 12B (Laptop/Desktop)
-docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
+podman exec ollama ollama pull gemma3:12b-instruct-q4_K_M
 
 # Gemma 3 2B (Raspberry Pi 5)
-docker exec ollama ollama pull gemma3:2b-instruct-q4_K_M
+podman exec ollama ollama pull gemma3:2b-instruct-q4_K_M
 
 # Embedding model
-docker exec ollama ollama pull nomic-embed-text
+podman exec ollama ollama pull nomic-embed-text
 
 # List models
-docker exec ollama ollama list
+podman exec ollama ollama list
 ```
 
 #### Process Data
@@ -371,23 +367,23 @@ python src/data_processing/pdf_loader.py --input ./resources
 python src/data_processing/audio_transcriber.py --input ./resources
 ```
 
-### Docker Management
+### Podman Management
 
 ```bash
 # View logs
-docker compose logs -f
+podman compose logs -f
 
 # Check resource usage
-docker stats
+podman stats
 
 # Enter container
-docker exec -it [container] /bin/bash
+podman exec -it [container] /bin/bash
 
 # Remove all containers and volumes
-docker compose down -v
+podman compose down -v
 
 # Rebuild containers
-docker compose up -d --build
+podman compose up -d --build
 ```
 
 ## File Organization
@@ -404,7 +400,7 @@ docker compose up -d --build
 
 #### Docker Configuration
 
-- `docker-compose.yml` - Full Docker setup with Flask
+- `docker-compose.yml` - Full Podman setup with Flask
 - `docker-compose.simple.yml` - Simplified setup (Windows)
 - `Dockerfile.flask` - Flask container with ffmpeg
 - `docker-startup.sh` / `docker-startup.bat` - Startup scripts
@@ -415,8 +411,8 @@ docker compose up -d --build
 - `IMPLEMENTATION.md` - System architecture and design
 - `PI5AI.md` - Raspberry Pi 5 deployment guide
 - `WINDOWS_SETUP.md` - Windows-specific setup
-- `DOCKER_DEPLOYMENT.md` - Docker deployment guide
-- `DOCKER_UPDATES.md` - Docker configuration changes
+- `DOCKER_DEPLOYMENT.md` - Podman deployment guide
+- `DOCKER_UPDATES.md` - Container configuration changes
 - `TRANSCRIPTION_SUCCESS.md` - Audio transcription solution
 - `DATA_PROCESSING_COMPLETE.md` - Data processing summary
 - `TROUBLESHOOTING.md` - Common issues and solutions
@@ -444,8 +440,8 @@ This standalone utility is **NOT temporary** because:
 # Transcribe new videos
 python transcribe_videos.py
 
-# In Docker container
-docker compose exec flask-api python transcribe_videos.py
+# In Podman container
+podman compose exec flask-api python transcribe_videos.py
 ```
 
 ### Temporary Files (Gitignored)
@@ -461,13 +457,13 @@ docker compose exec flask-api python transcribe_videos.py
 
 ```bash
 # Check service status
-docker compose ps
+podman compose ps
 
 # View logs
-docker compose logs -f [service_name]
+podman compose logs -f [service_name]
 
 # Restart services
-docker compose restart
+podman compose restart
 ```
 
 ### Ollama Connection Issues
@@ -477,11 +473,13 @@ docker compose restart
 curl http://localhost:11434/api/tags
 
 # Check if models are loaded
-docker exec ollama ollama list
+podman exec ollama ollama list
 
 # Pull models again
-docker exec ollama ollama pull gemma3:12b-instruct-q4_K_M
+podman exec ollama ollama pull gemma3:12b-instruct-q4_K_M
 ```
+
+Instructions how to connect to webui in case it is run on podman and api run on machine locally can be found [here](./FLASK_CONNECTION_FIX.md)
 
 ### Crun error while composing flask api
 
@@ -502,7 +500,7 @@ podman compose up
 
 - Use smaller model: `gemma3:2b-instruct-q4_K_M`
 - Reduce batch sizes in configuration
-- Increase Docker memory limits in Docker Desktop settings
+- Increase Podman memory limits in Podman Desktop settings (if using Podman Desktop)
 
 ### Poor Answers
 
@@ -517,15 +515,15 @@ curl http://localhost:5000/api/admin/stats
 ### Clean Restart
 
 ```bash
-docker compose down
-docker volume rm capstoneproject_chroma_data
-docker compose up -d
+podman compose down
+podman volume rm capstoneproject_chroma_data
+podman compose up -d
 python process_data.py
 ```
 
 ### Windows Build Issues
 
-If you encounter Docker build errors on Windows:
+If you encounter Podman build errors on Windows:
 
 ```batch
 REM Run Flask locally
@@ -538,7 +536,7 @@ If videos return empty transcriptions:
 
 - Check ffmpeg is installed: `ffmpeg -version`
 - Verify Whisper service: `curl http://localhost:9000/`
-- Check Whisper logs: `docker logs whisper`
+- Check Whisper logs: `podman logs whisper`
 
 ## Resources
 
@@ -546,7 +544,7 @@ If videos return empty transcriptions:
 
 - [IMPLEMENTATION.md](./IMPLEMENTATION.md) - Detailed implementation guide
 - [PI5AI.md](./PI5AI.md) - Raspberry Pi 5 requirements
-- [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) - Complete Docker guide
+- [DOCKER_DEPLOYMENT.md](./DOCKER_DEPLOYMENT.md) - Complete Podman deployment guide
 
 ### External Resources
 
@@ -636,5 +634,4 @@ podman logs open-webui
 
 **Quick Links:**
 
-- [Docker Deployment Guide](./DOCKER_DEPLOYMENT.md)
 - [Implementation Details](./IMPLEMENTATION.md)

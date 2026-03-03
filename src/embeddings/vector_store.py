@@ -114,3 +114,25 @@ class ChromaVectorStore:
             'count': self.collection.count(),
             'metadata': self.collection.metadata
         }
+    
+    def clear_collection(self):
+        """Delete all documents from the collection"""
+        try:
+            self.client.delete_collection(self.collection.name)
+            print(f"✓ Deleted collection: {self.collection.name}")
+            # Recreate the collection
+            self.collection = self.client.get_or_create_collection(
+                name=self.collection.name,
+                metadata={"hnsw:space": "cosine"}
+            )
+            print(f"✓ Recreated empty collection: {self.collection.name}")
+        except Exception as e:
+            print(f"✗ Error clearing collection: {e}")
+    
+    def delete_by_filter(self, filter_dict: Dict):
+        """Delete documents matching filter criteria"""
+        try:
+            self.collection.delete(where=filter_dict)
+            print(f"✓ Deleted documents matching filter: {filter_dict}")
+        except Exception as e:
+            print(f"✗ Error deleting documents: {e}")

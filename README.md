@@ -635,3 +635,4 @@ podman logs open-webui
 **Quick Links:**
 
 - [Implementation Details](./IMPLEMENTATION.md)
+- [Linkedin Post Generator](https://github.com/talsraviv/peoples-post-generator/tree/main?tab=readme-ov-file)

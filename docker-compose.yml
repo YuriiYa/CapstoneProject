@@ -111,6 +111,7 @@ services:
       - ENABLE_RAG_WEB_SEARCH=false
       - OPENAI_API_BASE_URL=http://flask-api:5000/api # Point to your RAG API
       - OPENAI_API_KEY=dummy-key # Required but can be dummy
+      - AIOHTTP_CLIENT_TIMEOUT=1800 # 30 minutes for long-running tasks
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

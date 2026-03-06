@@ -136,9 +136,9 @@ class RAGAgentCLI:
                 print()
 
             # 3. Show sources
-            if verbose and context:
+            if context and verbose:
                 print(f"\n📖 Sources:")
-                for i, ctx in enumerate(context[:5], 1):
+                for i, ctx in enumerate(context, 1):
                     metadata = ctx.get('metadata', {})
                     source = metadata.get('source', 'Unknown')
                     similarity = ctx.get('similarity', 0.0)

@@ -24,6 +24,8 @@ from src.agent.tool_manager import ToolManager
 from src.agent.reflection_module import ReflectionModule
 from src.evaluation.evaluator import Evaluator
 from src.agent.post_generator import LinkedInPostGenerator
+from src.agent.rag_base import RAGAgentBase
+
 from src.config.constants import (
     OLLAMA_BASE_URL,
     OLLAMA_EMBEDDING_MODEL,
@@ -41,19 +43,27 @@ from src.config.constants import (
     VERBOSE,
     GENERATE_LINKEDIN_POSTS,
     LINKEDIN_POST_TONE,
-    LINKEDIN_POST_LENGTH
+    LINKEDIN_POST_LENGTH,
+    LINKEDIN_POST_MAX_CHARS
 )
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for Open WebUI
 
 # Initialize
-class RAGAgent:
+class RAGAgent(RAGAgentBase):
     """RAG Agent with all components."""
 
     def __init__(self):
         """Initialize all components."""
         print("Initializing RAG Agent...")
+        self.PromptTemplates = PromptTemplates
+        self.TOP_K = TOP_K
+        self.MAX_TOKENS = MAX_TOKENS
+        self.TEMPERATURE = TEMPERATURE
+        self.CONFIDENCE = CONFIDENCE
+        self.LINKEDIN_POST_MAX_CHARS = LINKEDIN_POST_MAX_CHARS
+
 
         # Initialize components
         self.vector_store = ChromaVectorStore(
@@ -82,142 +92,23 @@ class RAGAgent:
 
         print("✓ RAG Agent initialized")
 
+
     def process_query(self, question: str,
                       include_reasoning: bool = INCLUDE_REASONING,
                       verbose: bool = VERBOSE,
                       generate_linkedin_post: bool = GENERATE_LINKEDIN_POSTS,
                       post_tone: str = LINKEDIN_POST_TONE,
                       post_length: str = LINKEDIN_POST_LENGTH):
-        """
-        Process a query through the RAG pipeline.
-
-        Args:
-            question: User's question
-            include_reasoning: Whether to include reasoning details
-
-        Returns:
-            Dictionary with answer and metadata
-        """
         try:
-            if verbose:
-                print(f"Question: {question}")
-            # 1. Analyze query
-            if verbose:
-                print("🔍 1. Analyze query...")
-            analysis = self.reasoning_engine.analyze_query(question)
-            if verbose:
-                print(f"   Intent: {analysis.get('intent', 'unknown')}")
-                print(f"   Complexity: {analysis.get('complexity', 'unknown')}")
-                print("")
-
-            # 2. Retrieve context
-            if verbose:
-                print("📚 2. Retrieving context...")
-            context = self.retriever.retrieve(question, top_k=TOP_K)
-            if context and verbose:
-                print(f" Retrieved {len(context)} relevant chunks")
-                print(f"\n📖 Sources:")
-                for i, ctx in enumerate(context, 1):
-                    metadata = ctx.get('metadata', {})
-                    source = metadata.get('source', 'Unknown')
-                    similarity = ctx.get('similarity', 0.0)
-                    document= ctx.get('document', '')
-                    print(f"   {i}. {source} (similarity: {similarity:.2%}):{document}")
-
-            # 3. Determine if tools needed
-            tool_results = []
-            if verbose:
-                print(" # 3. Determine if tools needed")
-            if analysis.get('requires_tools', False):
-                tools = analysis.get('suggested_tools', [])
-                for tool_name in tools:
-                    result = self.tool_manager.execute_tool(tool_name, query=question)
-
-                    if result.get('success'):
-                        tool_results.append(result)
-                        if verbose:
-                            print(f"Needed tool: {tool_name}, Result: {result}")
-
-            # 4. Generate answer
-            context_text = PromptTemplates.format_context(context)
-            prompt = PromptTemplates.rag_query_template(context_text, question)
-            answer = self.llm_client.generate(
-                prompt,
-                max_tokens=MAX_TOKENS,
-                temperature=TEMPERATURE
+            return self._process_query_common(
+                question=question,
+                include_reasoning=include_reasoning,
+                verbose=verbose,
+                generate_linkedin_post=generate_linkedin_post,
+                post_tone=post_tone,
+                post_length=post_length,
+                return_post_as_answer=generate_linkedin_post
             )
-
-            # 5. Reflect on answer
-            reflection = self.reflection_module.reflect(question, context, answer)
-            if reflection.get('issues') and verbose:
-                print(f"⚠ Issues identified: {', '.join(reflection['issues'])}")
-
-            # 6. Self-correct if needed
-            if reflection.get('needs_correction', False):
-                answer = self.self_correct(question, context, answer, reflection)
-                # Re-reflect on corrected answer
-                reflection = self.reflection_module.reflect(question, context, answer)
-
-            # 7. Generate LinkedIn post
-            if generate_linkedin_post:
-                if verbose:
-                    print("📱 Generating LinkedIn post...")
-                try:
-                    linkedin_prompt = (
-                        "Create a LinkedIn post based on the following content.\n"
-                        f"Tone: {post_tone}\n"
-                        f"Length: {post_length}\n"
-                        "Keep it professional, clear, and engaging.\n\n"
-                        f"Content:\n{answer}"
-                    )
-                    post = self.post_generator.generate_custom_post(
-                        custom_prompt=linkedin_prompt
-                    )
-                    if verbose:
-                        print("\n" + "━" * 60)
-                        print("📱 LinkedIn Post:")
-                        print("━" * 60 + "\n")
-
-                        if post:
-                            print(post + "\n")
-                            print("━" * 60)
-                            print(f"Characters: {len(post)}/{LINKEDIN_POST_MAX_CHARS}")
-                        else:
-                            print("Generation failed.\n")
-                        print()
-                    answer = post  # Replace answer with LinkedIn post for response
-                except Exception as e:
-                    logger.error(f"LinkedIn post generation error: {e}\n")
-            # Build response
-            result = {
-                "answer": answer,
-                "confidence": reflection.get('confidence', CONFIDENCE),
-                "sources": [
-                    {
-                        "source": c.get('metadata', {}).get('source', 'Unknown'),
-                        "similarity": c.get('similarity', 0.0)
-                    }
-                    for c in context
-                ]
-            }
-
-            if include_reasoning:
-                result.update({
-                    "reasoning": {
-                        "intent": analysis.get('intent'),
-                        "complexity": analysis.get('complexity'),
-                        "key_concepts": analysis.get('key_concepts', [])
-                    },
-                    "reflection": {
-                        "scores": reflection.get('scores', {}),
-                        "issues": reflection.get('issues', [])
-                    },
-                    "context_count": len(context),
-                    "tools_used": [t.get('tool') for t in tool_results]
-                })
-
-            return result
-
         except Exception as e:
             return {
                 "error": str(e),

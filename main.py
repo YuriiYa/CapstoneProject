@@ -22,6 +22,7 @@ from src.agent.reasoning_engine import ReasoningEngine
 from src.agent.tool_manager import ToolManager
 from src.agent.reflection_module import ReflectionModule
 from src.agent.post_generator import LinkedInPostGenerator
+from src.agent.rag_base import RAGAgentBase
 from src.config.constants import (
     CHROMA_HOST,
     CHROMA_PORT,
@@ -41,13 +42,20 @@ from src.config.constants import (
 )
 
 
-class RAGAgentCLI:
+class RAGAgentCLI(RAGAgentBase):
     """Command-line interface for the RAG Agent."""
 
     def __init__(self):
         """Initialize all RAG agent components."""
         print("Initializing RAG Agent...")
         print("-" * 60)
+
+        self.PromptTemplates = PromptTemplates
+        self.TOP_K = TOP_K
+        self.MAX_TOKENS = MAX_TOKENS
+        self.TEMPERATURE = TEMPERATURE
+        self.CONFIDENCE = CONFIDENCE
+        self.LINKEDIN_POST_MAX_CHARS = LINKEDIN_POST_MAX_CHARS
 
         # Initialize components
         try:
@@ -118,85 +126,21 @@ class RAGAgentCLI:
         print(f"{'='*60}\n")
 
         try:
-            # 1. Analyze query
-            if verbose:
-                print("🔍 Analyzing query...")
-            analysis = self.reasoning_engine.analyze_query(question)
-            if verbose:
-                print(f"   Intent: {analysis.get('intent', 'unknown')}")
-                print(f"   Complexity: {analysis.get('complexity', 'unknown')}")
-                print()
+            result = self._process_query_common(
+                question=question,
+                include_reasoning=include_reasoning,
+                verbose=verbose,
+                generate_linkedin_post=generate_linkedin_post,
+                post_tone=post_tone,
+                post_length=post_length,
+                return_post_as_answer=generate_linkedin_post
+            )
 
-            # 2. Retrieve context
-            if verbose:
-                print("📚 Retrieving context...")
-            context = self.retriever.retrieve(question, top_k=TOP_K)
-            if verbose:
-                print(f"   Retrieved {len(context)} relevant chunks")
-                print()
-
-            # 3. Show sources
-            if context and verbose:
-                print(f"\n📖 Sources:")
-                for i, ctx in enumerate(context, 1):
-                    metadata = ctx.get('metadata', {})
-                    source = metadata.get('source', 'Unknown')
-                    similarity = ctx.get('similarity', 0.0)
-                    document= ctx.get('document', '')
-                    print(f"   {i}. {source} (similarity: {similarity:.2%}):{document}")
-
-            # 4. Generate answer
-            if verbose:
-                print("💭 Generating answer...")
-            context_text = PromptTemplates.format_context(context)
-            prompt = PromptTemplates.rag_query_template(context_text, question)
-            answer = self.llm_client.generate(prompt, max_tokens=MAX_TOKENS, temperature=TEMPERATURE)
-
-            print(f"\n📝 Answer:\n{answer}\n")
-
-            # 5. Reflect on answer
-            if verbose:
-                print("🤔 Reflecting on answer quality...")
-            reflection = self.reflection_module.reflect(question, context, answer)
-            confidence = reflection.get('confidence', CONFIDENCE)
-
-            print(f"✓ Confidence: {confidence:.1%}")
-
-            if reflection.get('issues'):
-                print(f"⚠ Issues identified: {', '.join(reflection['issues'])}")
-
-            # 6. Generate LinkedIn post
-            if generate_linkedin_post:
-                print("📱 Generating LinkedIn post...")
-                try:
-                    linkedin_prompt = (
-                        "Create a LinkedIn post based on the following content.\n"
-                        f"Tone: {post_tone}\n"
-                        f"Length: {post_length}\n"
-                        "Keep it professional, clear, and engaging.\n\n"
-                        f"Content:\n{answer}"
-                    )
-                    post = self.post_generator.generate_custom_post(
-                        custom_prompt=linkedin_prompt
-                    )
-
-                    print("\n" + "━" * 60)
-                    print("📱 LinkedIn Post:")
-                    print("━" * 60 + "\n")
-
-                    if post:
-                        print(post + "\n")
-                        print("━" * 60)
-                        print(f"Characters: {len(post)}/{LINKEDIN_POST_MAX_CHARS}")
-                    else:
-                        print("Generation failed.\n")
-                    print()
-                except Exception as e:
-                    print(f"LinkedIn post generation error: {e}\n")
+            print(f"\n📝 Answer:\n{result.get('answer')}\n")
+            print(f"✓ Confidence: {result.get('confidence', CONFIDENCE):.1%}")
 
         except Exception as e:
             print(f"✗ Error processing query: {e}\n")
-
 
     def show_stats(self):
         """Show vector store statistics."""

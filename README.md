@@ -320,7 +320,7 @@ See [PI5AI.md](./PI5AI.md) for detailed Raspberry Pi 5 setup.
 
 #### Start/Stop Services
 
-```bash 
+```bash
 # Start all services
 podman compose up -d
 
@@ -401,22 +401,14 @@ podman compose up -d --build
 #### Docker Configuration
 
 - `docker-compose.yml` - Full Podman setup with Flask
-- `docker-compose.simple.yml` - Simplified setup (Windows)
+- `docker-compose.nohealth.yml` - Simplified setup (Windows)
 - `Dockerfile.flask` - Flask container with ffmpeg
-- `docker-startup.sh` / `docker-startup.bat` - Startup scripts
 
 #### Documentation
 
 - `README.md` - This file (main documentation)
 - `IMPLEMENTATION.md` - System architecture and design
 - `PI5AI.md` - Raspberry Pi 5 deployment guide
-- `WINDOWS_SETUP.md` - Windows-specific setup
-- `DOCKER_DEPLOYMENT.md` - Podman deployment guide
-- `DOCKER_UPDATES.md` - Container configuration changes
-- `TRANSCRIPTION_SUCCESS.md` - Audio transcription solution
-- `DATA_PROCESSING_COMPLETE.md` - Data processing summary
-- `TROUBLESHOOTING.md` - Common issues and solutions
-- `COMPLETION_SUMMARY.md` - Project completion summary
 
 #### Configuration
 
@@ -609,28 +601,89 @@ chroma browse rag_knowledge_base --host http://localhost:8000
 ### Useful commands
 
 ### Browse ChromaDB
+
 ```powershell
 python browse_chroma.py
 ```
 
 ### Test Flask API
+
 ```powershell
 curl http://localhost:5000/health
 ```
 
 ### Check Containers
+
 ```powershell
 podman ps
 ```
 
 ### View Container Logs
+
 ```powershell
 podman logs chromadb
 podman logs ollama
 podman logs open-webui
 ```
 
+## Implmenting MCP tool Server
 
+Run API
+
+```bash
+.\venv\Scripts\Activate.ps1
+python api/app.py
+
+```
+
+Run
+MCP Server via mcpo
+
+```bash
+.\venv\Scripts\Activate.ps1
+pip install mcpo
+mcpo --host 0.0.0.0 --port 8001 -- python -X utf8 mcp_linkedin_server.py
+```
+
+Register in Open WebUI:
+Open <http://localhost:3000> → login
+Go to Settings → Admin Settings → External Tools
+Under Manage Tool Servers, click "+" to add a new connection.
+Use `http://{your external ip}:8001` as url
+Bearer token `dummy-key`
+Save — Open WebUI will discover the tools from mcpo's
+
+Enable tools in a chat:
+Start a New Chat
+Select a model that support choosing tools (e.g. Ollama3.2, mistral-nemo)
+Click the Tools icon (wrench) in the message bar
+
+### MCP Troubleshooting
+
+Check farewallto avoid blockage:
+`New-NetFirewallRule -DisplayName "mcpo port 8001" -Direction Inbound -Protocol TCP -LocalPort 8001 -Action Allow`
+
+Getting error:
+'charmap' codec can't encode character '\U0001f50d' in position 0: character maps to <undefined>
+
+- Why happening: ython's stdout defaults to cp1252 (charmap) on Windows, which can't handle emoji characters (like 🔍) that appear in the pipeline's print/log output. Since mcpo communicates with the MCP server via stdio, this encoding mismatch crashes the process.
+
+- How to fix: Run mcp with command parameter `-X utf8`
+
+### Questions to check
+
+`tool_generate_linkedin_post_post`:
+Create a LinkedIn post about my AI capstone project.
+Agent: an agentic RAG system with self-reflection and tool use.
+Tech stack: Python, Ollama, ChromaDB, Flask, MCP.
+Achievements: integrated MCP tool server, Open WebUI support,
+automated LinkedIn post generation.
+Tone: professional. Length: medium.
+
+Generate a LinkedIn post about my RAG agent project.
+
+`tool_rag_query_post`:
+I want to know: What is the difference between standard retrieval and the ColPali approach?. Query the RAG knowledge base.
 
 **Quick Links:**
 

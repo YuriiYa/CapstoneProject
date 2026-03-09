@@ -336,6 +336,18 @@ def chat_completions():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/v1/models', methods=['GET'])
+def v1_list_models():
+    """OpenAI-compatible /v1/models endpoint required by Open WebUI."""
+    return list_models()
+
+
+@app.route('/v1/chat/completions', methods=['POST'])
+def v1_chat_completions():
+    """OpenAI-compatible /v1/chat/completions endpoint required by Open WebUI."""
+    return chat_completions()
+
+
 @app.route('/', methods=['GET'])
 def index():
     """API information endpoint."""

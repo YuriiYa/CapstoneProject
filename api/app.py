@@ -345,7 +345,46 @@ def v1_list_models():
 @app.route('/v1/chat/completions', methods=['POST'])
 def v1_chat_completions():
     """OpenAI-compatible /v1/chat/completions endpoint required by Open WebUI."""
-    return chat_completions()
+    data = request.get_json()
+    # Extract last user message from OpenAI format
+    messages = data.get('messages', [])
+    user_message = next(
+        (m['content'] for m in reversed(messages) if m['role'] == 'user'),
+        None
+    )
+
+    if not user_message:
+        return jsonify({"error": "No user message found"}), 400
+
+    result = self.llm_client.generate(
+            user_message,
+            max_tokens=self.MAX_TOKENS,
+            temperature=self.TEMPERATURE
+        )
+    answer = result.get('answer', 'No answer generated')
+
+    # Return in OpenAI-compatible format
+    return jsonify({
+            "id": "chatcmpl-rag",
+            "object": "chat.completion",
+            "created": 1700000000,
+            "model": "rag-agent",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": answer
+                    },
+                    "finish_reason": "stop"
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0
+            }
+        }), 200
 
 
 @app.route('/', methods=['GET'])

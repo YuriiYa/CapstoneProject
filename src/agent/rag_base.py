@@ -1,6 +1,18 @@
 # filepath: c:\projects\AI Academy\CapstoneProject\src\agent\rag_agent_base.py
+import sys
+import logging
+from src.config.constants import (
+USE_TOOLS
+)
+
+logger = logging.getLogger(__name__)
+
 class RAGAgentBase:
     """Shared RAG pipeline logic for CLI and API."""
+
+    def logPrint(self, message: str = "") -> None:
+        print(message, file=sys.stderr, flush=True)
+        logger.info(message)
 
     def _process_query_common(
         self,
@@ -13,43 +25,44 @@ class RAGAgentBase:
         return_post_as_answer: bool,
     ):
         if verbose:
-            print(f"Question: {question}")
+            self.logPrint(f"Question: {question}")
 
         # 1. Analyze query
         if verbose:
-            print("🔍 1. Analyze query...")
+            self.logPrint("🔍 1. Analyze query...")
         analysis = self.reasoning_engine.analyze_query(question)
         if verbose:
-            print(f"   Intent: {analysis.get('intent', 'unknown')}")
-            print(f"   Complexity: {analysis.get('complexity', 'unknown')}")
-            print("")
+            self.logPrint(f"   Intent: {analysis.get('intent', 'unknown')}")
+            self.logPrint(f"   Complexity: {analysis.get('complexity', 'unknown')}")
+            self.logPrint("")
 
         # 2. Retrieve context
         if verbose:
-            print("📚 2. Retrieving context...")
+            self.logPrint("📚 2. Retrieving context...")
         context = self.retriever.retrieve(question, top_k=self.TOP_K)
         if context and verbose:
-            print(f" Retrieved {len(context)} relevant chunks")
-            print(f"\n📖 Sources:")
+            self.logPrint(f" Retrieved {len(context)} relevant chunks")
+            self.logPrint(f"\n📖 Sources:")
             for i, ctx in enumerate(context, 1):
                 metadata = ctx.get('metadata', {})
                 source = metadata.get('source', 'Unknown')
                 similarity = ctx.get('similarity', 0.0)
                 document = ctx.get('document', '')
-                print(f"   {i}. {source} (similarity: {similarity:.2%}):{document}")
+                self.logPrint(f"   {i}. {source} (similarity: {similarity:.2%}):{document}")
 
         # 3. Determine if tools needed
         tool_results = []
-        if verbose:
-            print(" # 3. Determine if tools needed")
-        if analysis.get('requires_tools', False):
-            tools = analysis.get('suggested_tools', [])
-            for tool_name in tools:
-                result = self.tool_manager.execute_tool(tool_name, query=question)
-                if result.get('success'):
-                    tool_results.append(result)
-                    if verbose:
-                        print(f"Needed tool: {tool_name}, Result: {result}")
+        if USE_TOOLS:
+            if verbose:
+                self.logPrint(" # 3. Determine if tools needed")
+            if analysis.get('requires_tools', False):
+                tools = analysis.get('suggested_tools', [])
+                for tool_name in tools:
+                    result = self.tool_manager.execute_tool(tool_name, query=question)
+                    if result.get('success'):
+                        tool_results.append(result)
+                        if verbose:
+                            self.logPrint(f"Needed tool: {tool_name}, Result: {result}")
 
         # 4. Generate answer
         context_text = self.PromptTemplates.format_context(context)
@@ -60,12 +73,13 @@ class RAGAgentBase:
             temperature=self.TEMPERATURE
         )
 
-        print(f"Answer before reflection: {answer}\n") if verbose else None
+        if verbose:
+            self.logPrint(f"Answer before reflection: {answer}\n")
 
         # 5. Reflect on answer
         reflection = self.reflection_module.reflect(question, context, answer)
         if reflection.get('issues') and verbose:
-            print(f"⚠ Issues identified: {', '.join(reflection['issues'])}")
+            self.logPrint(f"⚠ Issues identified: {', '.join(reflection['issues'])}")
 
         # 6. Self-correct if needed
         if reflection.get('needs_correction', False):
@@ -76,7 +90,7 @@ class RAGAgentBase:
         post = None
         if generate_linkedin_post:
             if verbose:
-                print("📱 Generating LinkedIn post...")
+                self.logPrint("📱 Generating LinkedIn post...")
             try:
                 linkedin_prompt = (
                     "Create a LinkedIn post based on the following content.\n"
@@ -89,20 +103,20 @@ class RAGAgentBase:
                     custom_prompt=linkedin_prompt
                 )
                 if verbose:
-                    print("\n" + "━" * 60)
-                    print("📱 LinkedIn Post:")
-                    print("━" * 60 + "\n")
+                    self.logPrint("\n" + "━" * 60)
+                    self.logPrint("📱 LinkedIn Post:")
+                    self.logPrint("━" * 60 + "\n")
 
                     if post:
-                        print(post + "\n")
-                        print("━" * 60)
-                        print(f"Characters: {len(post)}/{self.LINKEDIN_POST_MAX_CHARS}")
+                        self.logPrint(post + "\n")
+                        self.logPrint("━" * 60)
+                        self.logPrint(f"Characters: {len(post)}/{self.LINKEDIN_POST_MAX_CHARS}")
                     else:
-                        print("Generation failed.\n")
-                    print()
+                        self.logPrint("Generation failed.\n")
+                    self.logPrint("")
             except Exception as e:
                 if verbose:
-                    print(f"LinkedIn post generation error: {e}\n")
+                    self.logPrint(f"LinkedIn post generation error: {e}\n")
 
         if return_post_as_answer and post:
             answer = post

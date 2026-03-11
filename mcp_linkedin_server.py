@@ -22,14 +22,17 @@ sys.path.insert(0, str(project_root))
 from dotenv import load_dotenv
 load_dotenv()
 
-# Log to stderr — stdout is reserved for the MCP stdio protocol
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-#     stream=sys.stderr,
-# )
-# logger = logging.getLogger(__name__)
-# sys.stdout = sys.stderr
+# Log to file — mcpo captures subprocess stderr, so file logging is needed
+_log_file = project_root / "mcp_server.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    handlers=[
+        logging.FileHandler(_log_file, encoding="utf-8"),
+        logging.StreamHandler(sys.stderr),
+    ],
+)
+logger = logging.getLogger(__name__)
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -151,9 +154,9 @@ _agent: RAGAgentMCP | None = None
 def _get_agent() -> RAGAgentMCP:
     global _agent
     if _agent is None:
-        # logger.info("Initializing RAGAgentMCP...")
+        logger.info("Initializing RAGAgentMCP...")
         _agent = RAGAgentMCP()
-        # logger.info("RAGAgentMCP initialized successfully")
+        logger.info("RAGAgentMCP initialized successfully")
     return _agent
 
 
@@ -255,16 +258,16 @@ async def list_tools() -> list[types.Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextContent]:
     """Dispatch a tool call to the appropriate handler."""
-    # logger.info("Tool called: %s | args: %s", name, arguments)
+    logger.info("Tool called: %s | args: %s", name, arguments)
     agent = _get_agent()
 
     if name == "rag_query":
         question = arguments["question"]
-        include_reasoning = arguments.get("include_reasoning", False)
+        include_reasoning = arguments.get("include_reasoning", INCLUDE_REASONING)
         result = agent.process_query(question=question, include_reasoning=include_reasoning)
 
         if "error" in result:
-            # logger.error("rag_query failed: %s", result["error"])
+            logger.error("rag_query failed: %s", result["error"])
             return [types.TextContent(type="text", text=f"Error: {result['error']}")]
 
         answer = result.get("answer", "No answer generated.")

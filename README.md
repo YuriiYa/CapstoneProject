@@ -642,7 +642,9 @@ MCP Server via mcpo
 ```bash
 .\venv\Scripts\Activate.ps1
 pip install mcpo
-mcpo --host 0.0.0.0 --port 8001 -- python -X utf8 mcp_linkedin_server.py
+mcpo --host 0.0.0.0 --port 8001 -- python -X utf8 -u mcp_linkedin_server.py
+# to see detailed logs, you need to run in separate terminal
+Get-Content -Path "C:\projects\AI Academy\CapstoneProject\mcp_server.log" -Wait
 ```
 
 Register in Open WebUI:

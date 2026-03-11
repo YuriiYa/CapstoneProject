@@ -93,4 +93,5 @@ LINKEDIN_POST_LENGTH = get_env_or_default("LINKEDIN_POST_LENGTH", "medium")
 LINKEDIN_POST_MAX_CHARS = get_env_or_default("LINKEDIN_POST_MAX_CHARS", 1300)
 VERBOSE = get_env_or_default("VERBOSE", True)
 GENERATE_LINKEDIN_POSTS = get_env_or_default("GENERATE_LINKEDIN_POSTS", True)
+USE_TOOLS = get_env_or_default("USE_TOOLS", False)
 

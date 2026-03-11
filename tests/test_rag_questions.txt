@@ -30,3 +30,21 @@ How do LLMs handle context limitations and what role does chunking play?
 
 ## Question 10: RAG vs Model Retraining
 When should you use RAG instead of retraining models?
+
+## Question 11: To test mcp tool `tool_generate_linkedin_post_post`:
+Create a LinkedIn post about my AI capstone project.
+Agent: an agentic RAG system with self-reflection and tool use.
+Tech stack: Python, Ollama, ChromaDB, Flask, MCP.
+Achievements: integrated MCP tool server, Open WebUI support,
+automated LinkedIn post generation.
+Tone: professional. Length: medium.
+
+## Question 12: To test mcp tool `tool_generate_linkedin_post_post`:
+Generate a LinkedIn post about my RAG agent project.
+
+## Question 13: To test mcp tool `tool_rag_query_post`:
+I want to know: What is the difference between standard retrieval and the ColPali approach?. Query the RAG knowledge base.
+
+## Question 14: To test mcp tool `tool_rag_query_post`:
+What is data chunking and why is it necessary for RAG systems?
+Generate a LinkedIn post, answering on this question

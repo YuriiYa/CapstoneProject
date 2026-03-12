@@ -60,7 +60,7 @@ CHROMA_COLLECTION_NAME = get_env_or_default("CHROMA_COLLECTION_NAME", "rag_knowl
 
 # LLM Generation Parameters
 
-MAX_TOKENS = get_env_or_default("MAX_TOKENS", 500)
+MAX_TOKENS = get_env_or_default("MAX_TOKENS", 600)
 
 TEMPERATURE = get_env_or_default("TEMPERATURE", 0.7)
 

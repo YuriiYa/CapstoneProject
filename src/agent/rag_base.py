@@ -29,6 +29,7 @@ class RAGAgentBase:
 
         # 1. Analyze query
         if verbose:
+            self.logPrint("\n" + "━" * 60)
             self.logPrint("🔍 1. Analyze query...")
         analysis = self.reasoning_engine.analyze_query(question)
         if verbose:
@@ -38,22 +39,25 @@ class RAGAgentBase:
 
         # 2. Retrieve context
         if verbose:
+            self.logPrint("\n" + "━" * 60)
             self.logPrint("📚 2. Retrieving context...")
         context = self.retriever.retrieve(question, top_k=self.TOP_K)
         if context and verbose:
             self.logPrint(f" Retrieved {len(context)} relevant chunks")
-            self.logPrint(f"\n📖 Sources:")
+            self.logPrint("\n📖 Sources:")
             for i, ctx in enumerate(context, 1):
                 metadata = ctx.get('metadata', {})
                 source = metadata.get('source', 'Unknown')
+                doc_id = metadata.get('documentid', 'N/A')
                 similarity = ctx.get('similarity', 0.0)
                 document = ctx.get('document', '')
-                self.logPrint(f"   {i}. {source} (similarity: {similarity:.2%}):{document}")
+                self.logPrint(f"\n\n   {i}. {source} (ID: {doc_id}) (similarity: {similarity:.2%}):\n{document}")
 
         # 3. Determine if tools needed
         tool_results = []
         if USE_TOOLS:
             if verbose:
+                self.logPrint("\n" + "━" * 60)
                 self.logPrint(" # 3. Determine if tools needed")
             if analysis.get('requires_tools', False):
                 tools = analysis.get('suggested_tools', [])
@@ -74,29 +78,35 @@ class RAGAgentBase:
         )
 
         if verbose:
-            self.logPrint(f"Answer before reflection: {answer}\n")
+            self.logPrint("\n" + "━" * 60)
+            self.logPrint(f"Generated Answer: {answer}\n")
 
         # 5. Reflect on answer
         reflection = self.reflection_module.reflect(question, context, answer)
         if reflection.get('issues') and verbose:
+            self.logPrint("\n" + "━" * 60)
             self.logPrint(f"⚠ Issues identified: {', '.join(reflection['issues'])}")
 
         # 6. Self-correct if needed
         if reflection.get('needs_correction', False):
             answer = self.self_correct(question, context, answer, reflection)
             reflection = self.reflection_module.reflect(question, context, answer)
+            if verbose:
+                self.logPrint("\n" + "━" * 60)
+                self.logPrint(f"Answer after self-correction: {answer}\n")
 
         # 7. Generate LinkedIn post
         post = None
         if generate_linkedin_post:
             if verbose:
+                self.logPrint("\n" + "━" * 60)
                 self.logPrint("📱 Generating LinkedIn post...")
             try:
                 linkedin_prompt = (
                     "Create a LinkedIn post based on the following content.\n"
                     f"Tone: {post_tone}\n"
                     f"Length: {post_length}\n"
-                    "Keep it professional, clear, and engaging.\n\n"
+                    "Keep it professional, clear, and engaging.\nAlso mention that it was done as final step of Ciklum AI Academy\n\n"
                     f"Content:\n{answer}"
                 )
                 post = self.post_generator.generate_custom_post(

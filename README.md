@@ -592,16 +592,6 @@ Educational project - Ciklum AI Academy
 
 ### Chroma DB
 
-```bash
-
-chroma browse rag_knowledge_base --local
-chroma browse rag_knowledge_base --host http://localhost:8000
-```
-
-### Useful commands
-
-### Browse ChromaDB
-
 ```powershell
 python browse_chroma.py
 ```
@@ -678,10 +668,8 @@ Getting error:
 Create a LinkedIn post about my AI capstone project.
 Agent: an agentic RAG system with self-reflection and tool use.
 Tech stack: Python, Ollama, ChromaDB, Flask, MCP.
-Achievements: integrated MCP tool server, Open WebUI support,
-automated LinkedIn post generation.
+Achievements: integrated MCP tool server, Open WebUI support, automated LinkedIn post generation.
 Tone: professional. Length: medium.
-
 Generate a LinkedIn post about my RAG agent project.
 
 `tool_rag_query_post`:

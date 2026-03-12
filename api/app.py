@@ -6,11 +6,6 @@ import os
 import sys
 from pathlib import Path
 
-# Add project root to Python path because
-# when running locally, Python needs to know where to find the src module
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -55,42 +50,7 @@ class RAGAgent(RAGAgentBase):
     """RAG Agent with all components."""
 
     def __init__(self):
-        """Initialize all components."""
-        print("Initializing RAG Agent...")
-        self.PromptTemplates = PromptTemplates
-        self.TOP_K = TOP_K
-        self.MAX_TOKENS = MAX_TOKENS
-        self.TEMPERATURE = TEMPERATURE
-        self.CONFIDENCE = CONFIDENCE
-        self.LINKEDIN_POST_MAX_CHARS = LINKEDIN_POST_MAX_CHARS
-
-
-        # Initialize components
-        self.vector_store = ChromaVectorStore(
-            host=CHROMA_HOST,
-            port=CHROMA_PORT,
-            collection_name=CHROMA_COLLECTION_NAME
-        )
-
-        self.embeddings = OllamaEmbeddings(
-            base_url=OLLAMA_BASE_URL,
-            model=OLLAMA_EMBEDDING_MODEL
-        )
-
-        self.retriever = Retriever(self.vector_store, self.embeddings)
-
-        self.llm_client = OllamaClient(
-            base_url=OLLAMA_BASE_URL,
-            model=OLLAMA_MODEL
-        )
-
-        self.reasoning_engine = ReasoningEngine(self.llm_client)
-        self.tool_manager = ToolManager()
-        self.reflection_module = ReflectionModule(self.llm_client)
-        self.post_generator = LinkedInPostGenerator(self.llm_client)
-        self.evaluator = Evaluator()
-
-        print("✓ RAG Agent initialized")
+        super().__init__()
 
 
     def process_query(self, question: str,
@@ -345,46 +305,7 @@ def v1_list_models():
 @app.route('/v1/chat/completions', methods=['POST'])
 def v1_chat_completions():
     """OpenAI-compatible /v1/chat/completions endpoint required by Open WebUI."""
-    data = request.get_json()
-    # Extract last user message from OpenAI format
-    messages = data.get('messages', [])
-    user_message = next(
-        (m['content'] for m in reversed(messages) if m['role'] == 'user'),
-        None
-    )
-
-    if not user_message:
-        return jsonify({"error": "No user message found"}), 400
-
-    result = self.llm_client.generate(
-            user_message,
-            max_tokens=self.MAX_TOKENS,
-            temperature=self.TEMPERATURE
-        )
-    answer = result.get('answer', 'No answer generated')
-
-    # Return in OpenAI-compatible format
-    return jsonify({
-            "id": "chatcmpl-rag",
-            "object": "chat.completion",
-            "created": 1700000000,
-            "model": "rag-agent",
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": answer
-                    },
-                    "finish_reason": "stop"
-                }
-            ],
-            "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0
-            }
-        }), 200
+    return chat_completions()
 
 
 @app.route('/', methods=['GET'])

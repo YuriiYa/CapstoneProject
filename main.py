@@ -47,54 +47,10 @@ class RAGAgentCLI(RAGAgentBase):
 
     def __init__(self):
         """Initialize all RAG agent components."""
-        print("Initializing RAG Agent...")
-        print("-" * 60)
-
-        self.PromptTemplates = PromptTemplates
-        self.TOP_K = TOP_K
-        self.MAX_TOKENS = MAX_TOKENS
-        self.TEMPERATURE = TEMPERATURE
-        self.CONFIDENCE = CONFIDENCE
-        self.LINKEDIN_POST_MAX_CHARS = LINKEDIN_POST_MAX_CHARS
-
-        # Initialize components
         try:
-            self.vector_store = ChromaVectorStore(
-                host=CHROMA_HOST,
-                port=CHROMA_PORT,
-                collection_name=CHROMA_COLLECTION_NAME
-            )
-            print("✓ Vector store connected")
-
-            self.embeddings = OllamaEmbeddings(
-                base_url=OLLAMA_BASE_URL,
-                model=OLLAMA_EMBEDDING_MODEL
-            )
-            print("✓ Embeddings generator initialized")
-
-            self.retriever = Retriever(self.vector_store, self.embeddings)
-            print("✓ Retriever initialized")
-
-            self.llm_client = OllamaClient(
-                base_url=OLLAMA_BASE_URL,
-                model=OLLAMA_MODEL
-            )
-            print("✓ LLM client initialized")
-
-            self.reasoning_engine = ReasoningEngine(self.llm_client)
-            print("✓ Reasoning engine initialized")
-
-            self.tool_manager = ToolManager()
-            print("✓ Tool manager initialized")
-
-            self.reflection_module = ReflectionModule(self.llm_client)
-            print("✓ Reflection module initialized")
-            self.post_generator = LinkedInPostGenerator(self.llm_client)
-            print("✓ LinkedIn post generator initialized")
-
+            super().__init__()
             print("-" * 60)
             print("✓ RAG Agent ready!\n")
-
         except Exception as e:
             print(f"✗ Error initializing RAG Agent: {e}")
             print("\nMake sure all services are running:")
@@ -119,7 +75,6 @@ class RAGAgentCLI(RAGAgentBase):
             generate_linkedin_post: Whether to generate a LinkedIn post
             post_tone: Tone for the LinkedIn post
             post_length: Length for the LinkedIn post
-            save_post_path: File path to save the generated post
         """
         print(f"\n{'='*60}")
         print(f"Question: {question}")
@@ -128,7 +83,7 @@ class RAGAgentCLI(RAGAgentBase):
         try:
             result = self._process_query_common(
                 question=question,
-                include_reasoning=include_reasoning,
+                include_reasoning=INCLUDE_REASONING,
                 verbose=verbose,
                 generate_linkedin_post=generate_linkedin_post,
                 post_tone=post_tone,

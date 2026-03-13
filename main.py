@@ -10,8 +10,10 @@ import argparse
 # Load environment variables
 load_dotenv()
 
-# Add src to path
-sys.path.append(os.path.dirname(__file__))
+# Add project root to Python path because
+# when running locally, Python needs to know where to find the src module
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.embeddings.vector_store import ChromaVectorStore
 from src.embeddings.embedding_generator import OllamaEmbeddings

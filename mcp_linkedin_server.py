@@ -167,53 +167,19 @@ def _get_agent() -> RAGAgentMCP:
 server = Server("rag-linkedin-agent")
 
 _TOOLS = [
-    types.Tool(
-        name="rag_query",
+        types.Tool(
+        name="generate_custom_linkedin_post",
         description=(
-            "Query the RAG knowledge base. Returns an answer grounded in retrieved "
-            "documents together with source references and a confidence score."
+            "Generate a LinkedIn post after answering a custom question prompt about RAG, MCP, AI Agents. "
+            "Run the full RAG pipeline on a topic and return the result, "
+            "formatted as a LinkedIn post."
         ),
         inputSchema={
             "type": "object",
             "properties": {
                 "question": {
                     "type": "string",
-                    "description": "The question to answer using the knowledge base.",
-                },
-                "include_reasoning": {
-                    "type": "boolean",
-                    "description": "Include intent, complexity, and reflection details in the response.",
-                    "default": INCLUDE_REASONING,
-                },
-            },
-            "required": ["question"],
-        },
-    ),
-    types.Tool(
-        name="generate_linkedin_post",
-        description=(
-            "Run the full RAG pipeline on a topic and return the result formatted "
-            "as a LinkedIn post. Optionally provide agent_description, tech_stack, "
-            "and achievements to personalise the post content."
-        ),
-        inputSchema={
-            "type": "object",
-            "properties": {
-                "question": {
-                    "type": "string",
-                    "description": "Topic question that drives the RAG knowledge lookup.",
-                },
-                "agent_description": {
-                    "type": "string",
-                    "description": "Short description of the AI agent or project.",
-                },
-                "tech_stack": {
-                    "type": "string",
-                    "description": "Technologies used (e.g. 'Python, Ollama, ChromaDB').",
-                },
-                "achievements": {
-                    "type": "string",
-                    "description": "Key achievements or outcomes to highlight in the post.",
+                    "description": "Custom prompt describing the LinkedIn post to generate.",
                 },
                 "tone": {
                     "type": "string",
@@ -226,21 +192,26 @@ _TOOLS = [
                     "default": LINKEDIN_POST_LENGTH,
                 },
             },
+            "required": ["question"],
         },
     ),
     types.Tool(
-        name="generate_custom_linkedin_post",
+        name="rag_query",
         description=(
-            "Generate a LinkedIn post directly from a custom prompt, bypassing the "
-            "RAG pipeline. Use this when you already have content and just need it "
-            "formatted as a LinkedIn post."
+            "Query the RAG knowledge base. Returns details grounded in retrieved "
+            "documents together with source references and a confidence score. "
         ),
         inputSchema={
             "type": "object",
             "properties": {
                 "prompt": {
                     "type": "string",
-                    "description": "Custom prompt describing the LinkedIn post to generate.",
+                    "description": "Getting details using the knowledge base.",
+                },
+                "include_reasoning": {
+                    "type": "boolean",
+                    "description": "Include intent, complexity, and reflection details in the response.",
+                    "default": INCLUDE_REASONING,
                 },
             },
             "required": ["prompt"],
@@ -260,6 +231,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextCont
     """Dispatch a tool call to the appropriate handler."""
     logger.info("Tool called: %s | args: %s", name, arguments)
     agent = _get_agent()
+    tone = arguments.get("tone", LINKEDIN_POST_TONE)
+    length = arguments.get("length", LINKEDIN_POST_LENGTH)
 
     if name == "rag_query":
         question = arguments["question"]
@@ -291,18 +264,8 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextCont
 
         return [types.TextContent(type="text", text="\n".join(lines))]
 
-    elif name == "generate_linkedin_post":
-        agent_description = arguments.get("agent_description", "an AI-powered RAG system")
-        tech_stack = arguments.get("tech_stack", "Python, Ollama, ChromaDB")
-        achievements = arguments.get("achievements", "")
-        tone = arguments.get("tone", LINKEDIN_POST_TONE)
-        length = arguments.get("length", LINKEDIN_POST_LENGTH)
+    elif name == "generate_custom_linkedin_post":
         question = arguments.get("question", "")
-
-        if not question:
-            question = f"Tell me about {agent_description} built with {tech_stack}"
-            if achievements:
-                question += f". Key achievements: {achievements}"
 
         result = agent.process_query(
             question=question,
@@ -314,11 +277,6 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextCont
             return_post_as_answer=GENERATE_LINKEDIN_POSTS,
         )
         post = result.get("answer", "")
-        return [types.TextContent(type="text", text=post or "Post generation failed.")]
-
-    elif name == "generate_custom_linkedin_post":
-        prompt = arguments["prompt"]
-        post = agent.post_generator.generate_custom_post(custom_prompt=prompt)
         return [types.TextContent(type="text", text=post or "Post generation failed.")]
 
     return [types.TextContent(type="text", text=f"Unknown tool: {name}")]

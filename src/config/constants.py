@@ -76,7 +76,7 @@ SIMILARITY_THRESHOLD = get_env_or_default("SIMILARITY_THRESHOLD", 0.7)
 
 # Text Chunking Parameters
 
-CHUNK_SIZE = get_env_or_default("CHUNK_SIZE", 800)
+CHUNK_SIZE = get_env_or_default("CHUNK_SIZE", 400)
 
 CHUNK_OVERLAP = get_env_or_default("CHUNK_OVERLAP", 150)
 
@@ -90,8 +90,7 @@ ANSWER_ERROR_MESSAGE = get_env_or_default("ANSWER_ERROR_MESSAGE", "An error occu
 # LinkedIn Post Generation
 LINKEDIN_POST_TONE = get_env_or_default("LINKEDIN_POST_TONE", "professional") # ["professional", "casual", "technical"]
 LINKEDIN_POST_LENGTH = get_env_or_default("LINKEDIN_POST_LENGTH", "medium")
-LINKEDIN_POST_MAX_CHARS = get_env_or_default("LINKEDIN_POST_MAX_CHARS", 1300)
+LINKEDIN_POST_MAX_CHARS = get_env_or_default("LINKEDIN_POST_MAX_CHARS", 1200)
 VERBOSE = get_env_or_default("VERBOSE", True)
 GENERATE_LINKEDIN_POSTS = get_env_or_default("GENERATE_LINKEDIN_POSTS", True)
 USE_TOOLS = get_env_or_default("USE_TOOLS", False)
-

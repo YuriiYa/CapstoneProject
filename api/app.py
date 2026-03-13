@@ -6,6 +6,11 @@ import os
 import sys
 from pathlib import Path
 
+# Add project root to Python path because
+# when running locally, Python needs to know where to find the src module
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -109,8 +114,9 @@ class RAGAgent(RAGAgentBase):
 
 
 # Initialize agent
-print("Starting Flask API...")
+
 agent = RAGAgent()
+agent.logPrint("Starting Flask API...")
 
 # Routes
 
@@ -253,6 +259,7 @@ def list_models():
 def chat_completions():
     """OpenAI-compatible chat completions endpoint for Open WebUI."""
     try:
+        agent.logPrint("Received /chat/completions request")
         data = request.get_json()
 
         # Extract last user message from OpenAI format
@@ -269,6 +276,7 @@ def chat_completions():
         result = agent.process_query(user_message, include_reasoning=False)
         answer = result.get('answer', 'No answer generated')
 
+        agent.logPrint("Completed /chat/completions request")
         # Return in OpenAI-compatible format
         return jsonify({
             "id": "chatcmpl-rag",
@@ -307,7 +315,6 @@ def v1_chat_completions():
     """OpenAI-compatible /v1/chat/completions endpoint required by Open WebUI."""
     return chat_completions()
 
-
 @app.route('/', methods=['GET'])
 def index():
     """API information endpoint."""
@@ -329,9 +336,9 @@ if __name__ == '__main__':
     port = FLASK_PORT
     debug = os.getenv('FLASK_ENV', 'production') == 'development'
 
-    print(f"\n{'='*60}")
-    print(f"Flask API running on http://0.0.0.0:{port}")
-    print(f"{'='*60}\n")
+    agent.logPrint(f"\n{'='*60}")
+    agent.logPrint(f"Flask API running on http://0.0.0.0:{port}")
+    agent.logPrint(f"{'='*60}\n")
 
     app.run(host='0.0.0.0', port=port, debug=debug)
 

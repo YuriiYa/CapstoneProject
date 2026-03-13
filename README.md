@@ -664,16 +664,13 @@ Getting error:
 
 ### Questions to check
 
-`tool_generate_linkedin_post_post`:
-Create a LinkedIn post about my AI capstone project.
-Agent: an agentic RAG system with self-reflection and tool use.
-Tech stack: Python, Ollama, ChromaDB, Flask, MCP.
-Achievements: integrated MCP tool server, Open WebUI support, automated LinkedIn post generation.
-Tone: professional. Length: medium.
-Generate a LinkedIn post about my RAG agent project.
+`rag_query`:
+I want to know the difference between standard retrieval and the ColPali approach. Query the RAG knowledge base.
 
-`tool_rag_query_post`:
-I want to know: What is the difference between standard retrieval and the ColPali approach?. Query the RAG knowledge base.
+`generate_custom_linkedin_post`:
+What is the difference between standard retrieval and the ColPali approach(Generate a LinkedIn post as output of answer of the question)?
+
+Why is hybrid search better than vector-only search(Generate a LinkedIn post as output of answer of the question)?
 
 **Quick Links:**
 

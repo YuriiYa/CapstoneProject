@@ -3,18 +3,36 @@ graph TB
         UI1[Open WebUI<br/>Web Chat Interface<br/>localhost:3000]
         UI2[API Clients<br/>curl, Postman, Python]
         UI3[CLI Interface<br/>main.py]
+        UI4[MCP Clients<br/>Claude Desktop]
     end
 
     subgraph "Flask API Backend - localhost:5000"
         API[Flask API<br/>REST Endpoints]
-        
+        V1M[GET /api/v1/models<br/>List available RAG models]
+        V1C[POST /api/v1/chat/completions<br/>OpenAI-compatible chat]
+        API --> V1M
+        API --> V1C
+
         subgraph "RAG Agent Core"
             QA[Query Analysis<br/>ReasoningEngine]
             RET[Retrieval<br/>Retriever]
             GEN[Generation<br/>LLM Client]
             REF[Reflection<br/>ReflectionModule]
             TOOL[Tool Manager<br/>Tool Execution]
+            POST[Post Generator<br/>LinkedInPostGenerator]
         end
+    end
+
+    subgraph "MCP Server - stdio"
+        MCP[MCP Server<br/>mcp_linkedin_server.py]
+        MCP_T1[Tool: rag_query]
+        MCP_T2[Tool: generate_custom_linkedin_post]
+        MCP --> MCP_T1
+        MCP --> MCP_T2
+    end
+
+    subgraph "mcpo Proxy - localhost:8080"
+        MCPO[mcpo<br/>MCP-to-OpenAPI Proxy<br/>localhost:8080]
     end
 
     subgraph "External Services"
@@ -36,10 +54,31 @@ graph TB
         VEC[ChromaDB<br/>Vector Embeddings]
     end
 
-    %% User flow
-    UI1 --> API
+    %% Open WebUI → Flask (OpenAI-compatible chat & model list)
+    UI1 -->|GET /api/v1/models| V1M
+    UI1 -->|POST /api/v1/chat/completions| V1C
+
+    %% Open WebUI → mcpo (MCP tool calls during chat)
+    UI1 -->|OpenAI tool calls| MCPO
+
+    %% Other clients → Flask
     UI2 --> API
     UI3 --> API
+
+    %% MCP Clients → MCP Server directly
+    UI4 --> MCP
+
+    %% mcpo bridges to MCP Server over stdio
+    MCPO -->|stdio| MCP
+
+    %% Flask v1 endpoints into RAG Agent
+    V1C --> QA
+    V1M -.->|returns model list| UI1
+
+    %% MCP Server uses same RAG Agent internals
+    MCP_T1 --> QA
+    MCP_T2 --> QA
+    MCP_T2 -.->|post generation| POST
 
     %% RAG Agent flow
     API --> QA
@@ -51,7 +90,9 @@ graph TB
     OLLAMA --> GEN
     GEN --> REF
     REF --> OLLAMA
-    
+    GEN --> POST
+    POST --> OLLAMA
+
     %% Tool execution
     QA -.->|if needed| TOOL
     TOOL -.-> RET
@@ -71,12 +112,18 @@ graph TB
     %% Styling
     classDef userInterface fill:#e1f5ff,stroke:#01579b,stroke-width:2px
     classDef apiLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef v1Layer fill:#ffe0b2,stroke:#bf360c,stroke-width:2px,stroke-dasharray:4 2
     classDef agentCore fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
     classDef services fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
     classDef data fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    
-    class UI1,UI2,UI3 userInterface
+    classDef mcpLayer fill:#fffde7,stroke:#f57f17,stroke-width:2px
+    classDef mcpoLayer fill:#f0f4c3,stroke:#827717,stroke-width:2px
+
+    class UI1,UI2,UI3,UI4 userInterface
     class API apiLayer
-    class QA,RET,GEN,REF,TOOL agentCore
+    class V1M,V1C v1Layer
+    class QA,RET,GEN,REF,TOOL,POST agentCore
     class OLLAMA,WHISPER,CHROMA services
     class RAW,PROC,VEC,PDF,AUDIO,CHUNK,EMB data
+    class MCP,MCP_T1,MCP_T2 mcpLayer
+    class MCPO mcpoLayer

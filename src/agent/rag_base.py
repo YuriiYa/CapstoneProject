@@ -4,11 +4,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-# Add project root to Python path because
-# when running locally, Python needs to know where to find the src module
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
 from src.embeddings.vector_store import ChromaVectorStore
 from src.embeddings.embedding_generator import OllamaEmbeddings
 from src.retrieval.retriever import Retriever
@@ -160,17 +155,18 @@ class RAGAgentBase:
 
         # 5. Reflect on answer
         reflection = self.reflection_module.reflect(question, context, answer)
-        if reflection.get('issues') and verbose:
-            self.logPrint("\n" + "━" * 60)
-            self.logPrint(f"⚠ Issues identified: {', '.join(reflection['issues'])}")
-
-        # 6. Self-correct if needed
-        if reflection.get('needs_correction', False):
-            answer = self.self_correct(question, context, answer, reflection)
-            reflection = self.reflection_module.reflect(question, context, answer)
+        if reflection.get('issues'):
             if verbose:
                 self.logPrint("\n" + "━" * 60)
-                self.logPrint(f"Answer after self-correction: {answer}\n")
+                self.logPrint(f"⚠ Issues identified: {', '.join(reflection['issues'])}")
+
+            # 6. Self-correct if needed
+            if reflection.get('needs_correction', False):
+                answer = self.self_correct(question, context, answer, reflection)
+                reflection = self.reflection_module.reflect(question, context, answer)
+                if verbose:
+                    self.logPrint("\n" + "━" * 60)
+                    self.logPrint(f"Answer after self-correction: {answer}\n")
 
         # 7. Generate LinkedIn post
         post = None
@@ -182,7 +178,7 @@ class RAGAgentBase:
                 linkedin_prompt = (
                     "Create a LinkedIn post based on the following content.\n"
                     f"Tone: {post_tone}\n"
-                    f"Length: {post_length}\n"
+                    f"Length of the content: {post_length}\n"
                     "Keep it professional, clear, and engaging.\nAlso mention that it was done as final step of Ciklum AI Academy\n\n"
                     f"Content:\n{answer}"
                 )

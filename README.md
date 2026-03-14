@@ -62,6 +62,110 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 - **Frontend**: Open WebUI
 - **Containerization**: Podman
 
+## Architecture
+
+ [Architecture diagram](./architecture.mmd)
+
+ ```mermaid
+graph TB
+    subgraph UI["User Interfaces"]
+        UI1[Open WebUI<br/>Web Chat Interface<br/>localhost:3000]
+        UI2[API Clients<br/>curl, Postman, Python]
+        UI3[CLI Interface<br/>main.py]
+        UI4[MCP Clients<br/>Claude Desktop]
+    end
+
+    subgraph FLASK["Flask API Backend - localhost:5000"]
+        API[Flask API<br/>REST Endpoints]
+        V1M[GET /api/v1/models<br/>List available RAG models]
+        V1C[POST /api/v1/chat/completions<br/>OpenAI-compatible chat]
+        API --> V1M
+        API --> V1C
+
+        subgraph AGENT["RAG Agent Core"]
+            QA[Query Analysis<br/>ReasoningEngine]
+            RET[Retrieval<br/>Retriever]
+            GEN[Generation<br/>LLM Client]
+            REF[Reflection<br/>ReflectionModule]
+            TOOL[Tool Manager<br/>Tool Execution]
+            POST[Post Generator<br/>LinkedInPostGenerator]
+        end
+    end
+
+    subgraph MCPSRV["MCP Server - stdio"]
+        MCP[MCP Server<br/>mcp_linkedin_server.py]
+        MCP_T1[Tool: rag_query]
+        MCP_T2[Tool: generate_custom_linkedin_post]
+        MCP --> MCP_T1
+        MCP --> MCP_T2
+    end
+
+    subgraph MCPOPROXY["mcpo Proxy - localhost:8080"]
+        MCPO[mcpo<br/>MCP-to-OpenAPI Proxy<br/>localhost:8080]
+    end
+
+    subgraph EXTSVC["External Services"]
+        OLLAMA[Ollama<br/>LLM + Embeddings<br/>localhost:11434]
+        WHISPER[Whisper<br/>Audio Transcription<br/>localhost:9000]
+        CHROMA[ChromaDB<br/>Vector Store<br/>localhost:8000]
+    end
+
+    subgraph DATAPIPE["Data Processing Pipeline"]
+        PDF[PDF Loader<br/>pdfplumber]
+        AUDIO[Audio Transcriber<br/>Whisper API]
+        CHUNK[Text Chunker<br/>Semantic Chunking]
+        EMB[Embedding Generator<br/>nomic-embed-text]
+    end
+
+    subgraph STORE["Data Storage"]
+        RAW[./resources/<br/>PDFs and MP4s]
+        PROC[./data/processed/<br/>Extracted Text]
+        VEC[ChromaDB<br/>Vector Embeddings]
+    end
+
+    UI1 -->|GET /api/v1/models| V1M
+    UI1 -->|POST /api/v1/chat/completions| V1C
+    UI1 -->|OpenAI tool calls| MCPO
+    UI2 --> API
+    UI3 --> API
+    UI4 --> MCP
+
+    MCPO -->|stdio| MCP
+
+    V1C --> QA
+    V1M -.->|returns model list| UI1
+
+    MCP_T1 --> QA
+    MCP_T2 --> QA
+    MCP_T2 -.->|post generation| POST
+
+    API --> QA
+    QA --> RET
+    RET --> CHROMA
+    CHROMA --> RET
+    RET --> GEN
+    GEN --> OLLAMA
+    OLLAMA --> GEN
+    GEN --> REF
+    REF --> OLLAMA
+    GEN --> POST
+    POST --> OLLAMA
+
+    QA -.->|if needed| TOOL
+    TOOL -.-> RET
+
+    RAW --> PDF
+    RAW --> AUDIO
+    PDF --> PROC
+    AUDIO --> WHISPER
+    WHISPER --> PROC
+    PROC --> CHUNK
+    CHUNK --> EMB
+    EMB --> OLLAMA
+    OLLAMA --> EMB
+    EMB --> VEC
+ ```
+
 ## Quick Start
 
 ### Prerequisites

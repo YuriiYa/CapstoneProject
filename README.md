@@ -100,8 +100,8 @@ graph TB
         MCP --> MCP_T2
     end
 
-    subgraph MCPOPROXY["mcpo Proxy - localhost:8080"]
-        MCPO[mcpo<br/>MCP-to-OpenAPI Proxy<br/>localhost:8080]
+    subgraph MCPOPROXY["mcpo Proxy - localhost:8001"]
+        MCPO[mcpo<br/>MCP-to-OpenAPI Proxy<br/>localhost:8001]
     end
 
     subgraph EXTSVC["External Services"]
@@ -165,6 +165,17 @@ graph TB
     OLLAMA --> EMB
     EMB --> VEC
  ```
+
+### Service URLs
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Open WebUI | <http://localhost:3000> | Web chat interface |
+| Flask API | <http://localhost:5000> | REST API |
+| Ollama | <http://localhost:11434> | LLM service |
+| ChromaDB | <http://localhost:8000> | Vector database |
+| Whisper | <http://localhost:9000> | Audio transcription |
+| mcpo | <http://localhost:8001> | MCP-to-OpenAPI proxy for Open WebUI tools |
 
 ## Quick Start
 
@@ -281,11 +292,12 @@ CapstoneProject/
 │   └── __init__.py
 ├── tools/                       # Utility tools
 ├── docker-compose.yml           # Full Podman configuration
-├── docker-compose.simple.yml    # Simplified Podman config (Windows)
+├── docker-compose.nohealth.yml  # Simplified Podman config (Windows)
 ├── Dockerfile.flask             # Flask container with ffmpeg
 ├── docker-startup.sh            # Container startup (Linux/Mac)
 ├── docker-startup.bat           # Container startup (Windows)
 ├── main.py                      # CLI interface
+├── mcp_linkedin_server.py       # MCP server for RAG and LinkedIn tools
 ├── process_data.py              # Data processing pipeline
 ├── transcribe_videos.py         # Video transcription utility
 ├── requirements.txt             # Python dependencies
@@ -314,7 +326,7 @@ CHROMA_COLLECTION_NAME=rag_knowledge_base
 # Application Configuration
 MAX_TOKENS=500
 TEMPERATURE=0.7
-TOP_K_RETRIEVAL=5
+TOP_K=5
 CHUNK_SIZE=800
 CHUNK_OVERLAP=150
 ```
@@ -328,6 +340,7 @@ CHUNK_OVERLAP=150
 | Ollama | <http://localhost:11434> | LLM service |
 | ChromaDB | <http://localhost:8000> | Vector database |
 | Whisper | <http://localhost:9000> | Audio transcription |
+| mcpo | <http://localhost:8001> | MCP-to-OpenAPI proxy for Open WebUI tools |
 
 ## Usage
 
@@ -727,11 +740,9 @@ Run API
 ```bash
 .\venv\Scripts\Activate.ps1
 python api/app.py
-
 ```
 
-Run
-MCP Server via mcpo
+Run MCP Server via mcpo
 
 ```bash
 .\venv\Scripts\Activate.ps1
@@ -747,11 +758,11 @@ Go to Settings → Admin Settings → External Tools
 Under Manage Tool Servers, click "+" to add a new connection.
 Use `http://{your external ip}:8001` as url
 Bearer token `dummy-key`
-Save — Open WebUI will discover the tools from mcpo's
+Save — Open WebUI will discover the tools from mcpo's OpenAPI spec automatically.
 
 Enable tools in a chat:
 Start a New Chat
-Select a model that support choosing tools (e.g. Ollama3.2, mistral-nemo)
+Select a model that supports tool calling (e.g. llama3.2, mistral-nemo)
 Click the Tools icon (wrench) in the message bar
 
 ### MCP Troubleshooting

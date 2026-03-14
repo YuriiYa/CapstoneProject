@@ -21,7 +21,7 @@ def get_env_or_default(env_var: str, default_value):
 
     if value is None:
         return default_value
-    
+
 
     # Type conversion based on default value type
 
@@ -60,7 +60,7 @@ CHROMA_COLLECTION_NAME = get_env_or_default("CHROMA_COLLECTION_NAME", "rag_knowl
 
 # LLM Generation Parameters
 
-MAX_TOKENS = get_env_or_default("MAX_TOKENS", 500)
+MAX_TOKENS = get_env_or_default("MAX_TOKENS", 600)
 
 TEMPERATURE = get_env_or_default("TEMPERATURE", 0.7)
 
@@ -76,18 +76,21 @@ SIMILARITY_THRESHOLD = get_env_or_default("SIMILARITY_THRESHOLD", 0.7)
 
 # Text Chunking Parameters
 
-CHUNK_SIZE = get_env_or_default("CHUNK_SIZE", 800)
+CHUNK_SIZE = get_env_or_default("CHUNK_SIZE", 400)
 
 CHUNK_OVERLAP = get_env_or_default("CHUNK_OVERLAP", 150)
 
 
 # Application Configuration
-
 INCLUDE_REASONING = get_env_or_default("INCLUDE_REASONING", True)
-
 CONFIDENCE = get_env_or_default("CONFIDENCE", 0.7)
-
 FLASK_PORT = get_env_or_default("FLASK_PORT", 5000)
-
 ANSWER_ERROR_MESSAGE = get_env_or_default("ANSWER_ERROR_MESSAGE", "An error occurred while processing your question.")
 
+# LinkedIn Post Generation
+LINKEDIN_POST_TONE = get_env_or_default("LINKEDIN_POST_TONE", "professional") # ["professional", "casual", "technical"]
+LINKEDIN_POST_LENGTH = get_env_or_default("LINKEDIN_POST_LENGTH", "medium")
+LINKEDIN_POST_MAX_CHARS = get_env_or_default("LINKEDIN_POST_MAX_CHARS", 1200)
+VERBOSE = get_env_or_default("VERBOSE", True)
+GENERATE_LINKEDIN_POSTS = get_env_or_default("GENERATE_LINKEDIN_POSTS", True)
+USE_TOOLS = get_env_or_default("USE_TOOLS", False)

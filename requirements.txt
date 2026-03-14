@@ -23,3 +23,6 @@ pyyaml==6.0.1
 
 # Progress / logging
 tqdm==4.66.2
+
+# MCP (Model Context Protocol) server
+mcp>=1.0.0

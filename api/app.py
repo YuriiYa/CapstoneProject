@@ -23,6 +23,9 @@ from src.agent.reasoning_engine import ReasoningEngine
 from src.agent.tool_manager import ToolManager
 from src.agent.reflection_module import ReflectionModule
 from src.evaluation.evaluator import Evaluator
+from src.agent.post_generator import LinkedInPostGenerator
+from src.agent.rag_base import RAGAgentBase
+
 from src.config.constants import (
     OLLAMA_BASE_URL,
     OLLAMA_EMBEDDING_MODEL,
@@ -37,120 +40,40 @@ from src.config.constants import (
     CONFIDENCE,
     FLASK_PORT,
     ANSWER_ERROR_MESSAGE,
+    VERBOSE,
+    GENERATE_LINKEDIN_POSTS,
+    LINKEDIN_POST_TONE,
+    LINKEDIN_POST_LENGTH,
+    LINKEDIN_POST_MAX_CHARS
 )
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for Open WebUI
 
 # Initialize
-class RAGAgent:
+class RAGAgent(RAGAgentBase):
     """RAG Agent with all components."""
 
     def __init__(self):
-        """Initialize all components."""
-        print("Initializing RAG Agent...")
+        super().__init__()
 
-        # Initialize components
-        self.vector_store = ChromaVectorStore(
-            host=CHROMA_HOST,
-            port=CHROMA_PORT,
-            collection_name=CHROMA_COLLECTION_NAME
-        )
 
-        self.embeddings = OllamaEmbeddings(
-            base_url=OLLAMA_BASE_URL,
-            model=OLLAMA_EMBEDDING_MODEL
-        )
-
-        self.retriever = Retriever(self.vector_store, self.embeddings)
-
-        self.llm_client = OllamaClient(
-            base_url=OLLAMA_BASE_URL,
-            model=OLLAMA_MODEL
-        )
-
-        self.reasoning_engine = ReasoningEngine(self.llm_client)
-        self.tool_manager = ToolManager()
-        self.reflection_module = ReflectionModule(self.llm_client)
-        self.evaluator = Evaluator()
-
-        print("✓ RAG Agent initialized")
-
-    def process_query(self, question: str, include_reasoning: bool = INCLUDE_REASONING):
-        """
-        Process a query through the RAG pipeline.
-
-        Args:
-            question: User's question
-            include_reasoning: Whether to include reasoning details
-
-        Returns:
-            Dictionary with answer and metadata
-        """
+    def process_query(self, question: str,
+                      include_reasoning: bool = INCLUDE_REASONING,
+                      verbose: bool = VERBOSE,
+                      generate_linkedin_post: bool = GENERATE_LINKEDIN_POSTS,
+                      post_tone: str = LINKEDIN_POST_TONE,
+                      post_length: str = LINKEDIN_POST_LENGTH):
         try:
-            # 1. Analyze query
-            analysis = self.reasoning_engine.analyze_query(question)
-
-            # 2. Retrieve context
-            context = self.retriever.retrieve(question, top_k=TOP_K)
-
-            # 3. Determine if tools needed
-            tool_results = []
-            if analysis.get('requires_tools', False):
-                tools = analysis.get('suggested_tools', [])
-                for tool_name in tools:
-                    result = self.tool_manager.execute_tool(tool_name, query=question)
-                    if result.get('success'):
-                        tool_results.append(result)
-
-            # 4. Generate answer
-            context_text = PromptTemplates.format_context(context)
-            prompt = PromptTemplates.rag_query_template(context_text, question)
-            answer = self.llm_client.generate(
-                prompt,
-                max_tokens=MAX_TOKENS,
-                temperature=TEMPERATURE
+            return self._process_query_common(
+                question=question,
+                include_reasoning=include_reasoning,
+                verbose=verbose,
+                generate_linkedin_post=generate_linkedin_post,
+                post_tone=post_tone,
+                post_length=post_length,
+                return_post_as_answer=generate_linkedin_post
             )
-
-            # 5. Reflect on answer
-            reflection = self.reflection_module.reflect(question, context, answer)
-
-            # 6. Self-correct if needed
-            if reflection.get('needs_correction', False):
-                answer = self.self_correct(question, context, answer, reflection)
-                # Re-reflect on corrected answer
-                reflection = self.reflection_module.reflect(question, context, answer)
-
-            # Build response
-            result = {
-                "answer": answer,
-                "confidence": reflection.get('confidence', CONFIDENCE),
-                "sources": [
-                    {
-                        "source": c.get('metadata', {}).get('source', 'Unknown'),
-                        "similarity": c.get('similarity', 0.0)
-                    }
-                    for c in context
-                ]
-            }
-
-            if include_reasoning:
-                result.update({
-                    "reasoning": {
-                        "intent": analysis.get('intent'),
-                        "complexity": analysis.get('complexity'),
-                        "key_concepts": analysis.get('key_concepts', [])
-                    },
-                    "reflection": {
-                        "scores": reflection.get('scores', {}),
-                        "issues": reflection.get('issues', [])
-                    },
-                    "context_count": len(context),
-                    "tools_used": [t.get('tool') for t in tool_results]
-                })
-
-            return result
-
         except Exception as e:
             return {
                 "error": str(e),
@@ -191,8 +114,9 @@ class RAGAgent:
 
 
 # Initialize agent
-print("Starting Flask API...")
+
 agent = RAGAgent()
+agent.logPrint("Starting Flask API...")
 
 # Routes
 
@@ -335,6 +259,7 @@ def list_models():
 def chat_completions():
     """OpenAI-compatible chat completions endpoint for Open WebUI."""
     try:
+        agent.logPrint("Received /chat/completions request")
         data = request.get_json()
 
         # Extract last user message from OpenAI format
@@ -351,6 +276,7 @@ def chat_completions():
         result = agent.process_query(user_message, include_reasoning=False)
         answer = result.get('answer', 'No answer generated')
 
+        agent.logPrint("Completed /chat/completions request")
         # Return in OpenAI-compatible format
         return jsonify({
             "id": "chatcmpl-rag",
@@ -378,6 +304,17 @@ def chat_completions():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/v1/models', methods=['GET'])
+def v1_list_models():
+    """OpenAI-compatible /v1/models endpoint required by Open WebUI."""
+    return list_models()
+
+
+@app.route('/v1/chat/completions', methods=['POST'])
+def v1_chat_completions():
+    """OpenAI-compatible /v1/chat/completions endpoint required by Open WebUI."""
+    return chat_completions()
+
 @app.route('/', methods=['GET'])
 def index():
     """API information endpoint."""
@@ -399,9 +336,9 @@ if __name__ == '__main__':
     port = FLASK_PORT
     debug = os.getenv('FLASK_ENV', 'production') == 'development'
 
-    print(f"\n{'='*60}")
-    print(f"Flask API running on http://0.0.0.0:{port}")
-    print(f"{'='*60}\n")
+    agent.logPrint(f"\n{'='*60}")
+    agent.logPrint(f"Flask API running on http://0.0.0.0:{port}")
+    agent.logPrint(f"{'='*60}\n")
 
     app.run(host='0.0.0.0', port=port, debug=debug)
 

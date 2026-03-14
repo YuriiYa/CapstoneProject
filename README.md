@@ -62,6 +62,121 @@ This is an AI-Agentic RAG (Retrieval-Augmented Generation) system built as part 
 - **Frontend**: Open WebUI
 - **Containerization**: Podman
 
+## Architecture
+
+ [Architecture diagram](./architecture.mmd)
+
+ ```mermaid
+graph TB
+    subgraph UI["User Interfaces"]
+        UI1[Open WebUI<br/>Web Chat Interface<br/>localhost:3000]
+        UI2[API Clients<br/>curl, Postman, Python]
+        UI3[CLI Interface<br/>main.py]
+        UI4[MCP Clients<br/>Claude Desktop]
+    end
+
+    subgraph FLASK["Flask API Backend - localhost:5000"]
+        API[Flask API<br/>REST Endpoints]
+        V1M[GET /api/v1/models<br/>List available RAG models]
+        V1C[POST /api/v1/chat/completions<br/>OpenAI-compatible chat]
+        API --> V1M
+        API --> V1C
+
+        subgraph AGENT["RAG Agent Core"]
+            QA[Query Analysis<br/>ReasoningEngine]
+            RET[Retrieval<br/>Retriever]
+            GEN[Generation<br/>LLM Client]
+            REF[Reflection<br/>ReflectionModule]
+            TOOL[Tool Manager<br/>Tool Execution]
+            POST[Post Generator<br/>LinkedInPostGenerator]
+        end
+    end
+
+    subgraph MCPSRV["MCP Server - stdio"]
+        MCP[MCP Server<br/>mcp_linkedin_server.py]
+        MCP_T1[Tool: rag_query]
+        MCP_T2[Tool: generate_custom_linkedin_post]
+        MCP --> MCP_T1
+        MCP --> MCP_T2
+    end
+
+    subgraph MCPOPROXY["mcpo Proxy - localhost:8001"]
+        MCPO[mcpo<br/>MCP-to-OpenAPI Proxy<br/>localhost:8001]
+    end
+
+    subgraph EXTSVC["External Services"]
+        OLLAMA[Ollama<br/>LLM + Embeddings<br/>localhost:11434]
+        WHISPER[Whisper<br/>Audio Transcription<br/>localhost:9000]
+        CHROMA[ChromaDB<br/>Vector Store<br/>localhost:8000]
+    end
+
+    subgraph DATAPIPE["Data Processing Pipeline"]
+        PDF[PDF Loader<br/>pdfplumber]
+        AUDIO[Audio Transcriber<br/>Whisper API]
+        CHUNK[Text Chunker<br/>Semantic Chunking]
+        EMB[Embedding Generator<br/>nomic-embed-text]
+    end
+
+    subgraph STORE["Data Storage"]
+        RAW[./resources/<br/>PDFs and MP4s]
+        PROC[./data/processed/<br/>Extracted Text]
+        VEC[ChromaDB<br/>Vector Embeddings]
+    end
+
+    UI1 -->|GET /api/v1/models| V1M
+    UI1 -->|POST /api/v1/chat/completions| V1C
+    UI1 -->|OpenAI tool calls| MCPO
+    UI2 --> API
+    UI3 --> API
+    UI4 --> MCP
+
+    MCPO -->|stdio| MCP
+
+    V1C --> QA
+    V1M -.->|returns model list| UI1
+
+    MCP_T1 --> QA
+    MCP_T2 --> QA
+    MCP_T2 -.->|post generation| POST
+
+    API --> QA
+    QA --> RET
+    RET --> CHROMA
+    CHROMA --> RET
+    RET --> GEN
+    GEN --> OLLAMA
+    OLLAMA --> GEN
+    GEN --> REF
+    REF --> OLLAMA
+    GEN --> POST
+    POST --> OLLAMA
+
+    QA -.->|if needed| TOOL
+    TOOL -.-> RET
+
+    RAW --> PDF
+    RAW --> AUDIO
+    PDF --> PROC
+    AUDIO --> WHISPER
+    WHISPER --> PROC
+    PROC --> CHUNK
+    CHUNK --> EMB
+    EMB --> OLLAMA
+    OLLAMA --> EMB
+    EMB --> VEC
+ ```
+
+### Service URLs
+
+| Service | URL | Purpose |
+|---------|-----|---------|
+| Open WebUI | <http://localhost:3000> | Web chat interface |
+| Flask API | <http://localhost:5000> | REST API |
+| Ollama | <http://localhost:11434> | LLM service |
+| ChromaDB | <http://localhost:8000> | Vector database |
+| Whisper | <http://localhost:9000> | Audio transcription |
+| mcpo | <http://localhost:8001> | MCP-to-OpenAPI proxy for Open WebUI tools |
+
 ## Quick Start
 
 ### Prerequisites
@@ -177,11 +292,12 @@ CapstoneProject/
 │   └── __init__.py
 ├── tools/                       # Utility tools
 ├── docker-compose.yml           # Full Podman configuration
-├── docker-compose.simple.yml    # Simplified Podman config (Windows)
+├── docker-compose.nohealth.yml  # Simplified Podman config (Windows)
 ├── Dockerfile.flask             # Flask container with ffmpeg
 ├── docker-startup.sh            # Container startup (Linux/Mac)
 ├── docker-startup.bat           # Container startup (Windows)
 ├── main.py                      # CLI interface
+├── mcp_linkedin_server.py       # MCP server for RAG and LinkedIn tools
 ├── process_data.py              # Data processing pipeline
 ├── transcribe_videos.py         # Video transcription utility
 ├── requirements.txt             # Python dependencies
@@ -210,7 +326,7 @@ CHROMA_COLLECTION_NAME=rag_knowledge_base
 # Application Configuration
 MAX_TOKENS=500
 TEMPERATURE=0.7
-TOP_K_RETRIEVAL=5
+TOP_K=5
 CHUNK_SIZE=800
 CHUNK_OVERLAP=150
 ```
@@ -224,6 +340,7 @@ CHUNK_OVERLAP=150
 | Ollama | <http://localhost:11434> | LLM service |
 | ChromaDB | <http://localhost:8000> | Vector database |
 | Whisper | <http://localhost:9000> | Audio transcription |
+| mcpo | <http://localhost:8001> | MCP-to-OpenAPI proxy for Open WebUI tools |
 
 ## Usage
 
@@ -623,11 +740,9 @@ Run API
 ```bash
 .\venv\Scripts\Activate.ps1
 python api/app.py
-
 ```
 
-Run
-MCP Server via mcpo
+Run MCP Server via mcpo
 
 ```bash
 .\venv\Scripts\Activate.ps1
@@ -643,11 +758,11 @@ Go to Settings → Admin Settings → External Tools
 Under Manage Tool Servers, click "+" to add a new connection.
 Use `http://{your external ip}:8001` as url
 Bearer token `dummy-key`
-Save — Open WebUI will discover the tools from mcpo's
+Save — Open WebUI will discover the tools from mcpo's OpenAPI spec automatically.
 
 Enable tools in a chat:
 Start a New Chat
-Select a model that support choosing tools (e.g. Ollama3.2, mistral-nemo)
+Select a model that supports tool calling (e.g. llama3.2, mistral-nemo)
 Click the Tools icon (wrench) in the message bar
 
 ### MCP Troubleshooting
